@@ -30,12 +30,15 @@ RUN dnf install -y nmap-ncat && dnf clean all
 
 # Copy backend and install dependencies
 COPY backend/ ./backend/
+COPY frontend/src/assets/ ./backend/public/assets
+
 COPY entrypoint.sh .
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy built frontend to backend's static files
 COPY --from=frontend-builder /app/frontend/dist ./backend/public/
+
 
 
 USER 1001

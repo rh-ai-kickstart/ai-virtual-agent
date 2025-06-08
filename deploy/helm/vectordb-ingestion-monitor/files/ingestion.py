@@ -129,7 +129,7 @@ def process_and_store_pgvector(llamastack_base_url: str, input_dir: dsl.InputPat
     version = os.environ.get('VERSION')
     embedding_model = os.environ.get('EMBEDDING_MODEL')
 
-    vector_db_name = f"{name}-v{version}".replace(" ", "-").replace(".", "-")
+    vector_db_name = f"{name}".replace(" ", "-").replace(".", "-")
     
     # Check if vector database already exists
     client = LlamaStackClient(base_url=llamastack_base_url)

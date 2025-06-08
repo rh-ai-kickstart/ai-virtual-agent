@@ -1,0 +1,1 @@
+import{j as e,aj as n,aK as s}from"./index-LaJO9bMT.js";const t=function(){return e.jsx(n,{hasBodyWrapper:!1,children:e.jsx(s,{headingLevel:"h1",children:"Knowledge Bases"})})};export{t as component};

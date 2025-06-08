@@ -88,19 +88,19 @@ export function KnowledgeBaseForm({
     switch (fieldName) {
       case 'ACCESS_KEY_ID':
         if (!value.trim()) return 'Access Key ID is required';
-        if (value.length < 16) return 'Access Key ID must be at least 16 characters';
-        if (!/^[A-Z0-9]+$/.test(value))
-          return 'Access Key ID should contain only uppercase letters and numbers';
+        // if (value.length < 16) return 'Access Key ID must be at least 16 characters';
+        // if (!/^[A-Z0-9]+$/.test(value))
+        //   return 'Access Key ID should contain only uppercase letters and numbers';
         return undefined;
       case 'SECRET_ACCESS_KEY':
         if (!value.trim()) return 'Secret Access Key is required';
-        if (value.length < 40) return 'Secret Access Key must be at least 40 characters';
+        // if (value.length < 40) return 'Secret Access Key must be at least 40 characters';
         return undefined;
       case 'ENDPOINT_URL':
         if (!value.trim()) return 'Endpoint URL is required';
         try {
           new URL(value);
-          if (!value.startsWith('https://')) return 'Endpoint URL should use HTTPS';
+          if (!value.startsWith('https://') && !value.startsWith('http://')) return 'Endpoint URL should use HTTPS or HTTP';
         } catch {
           return 'Please enter a valid URL';
         }

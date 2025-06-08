@@ -1,5 +1,5 @@
 apiVersion: v2
-name: ai-virtual-assistant
+name: mcp-weather
 description: A Helm chart for Kubernetes
 
 # A chart can be either an 'application' or a 'library' chart.
@@ -22,28 +22,3 @@ version: 0.1.0
 # follow Semantic Versioning. They should reflect the version the application is using.
 # It is recommended to use it with quotes.
 appVersion: "1.16.0"
-
-# dependencies:
-#   - name: minio
-#     version: 0.1.0
-#     repository: https://rh-ai-kickstart.github.io/ai-architecture-charts
-#   - name: pgvector
-#     version: 0.1.0
-#     repository: https://rh-ai-kickstart.github.io/ai-architecture-charts
-#   - name: mcp-weather
-#     version: 0.1.0
-#     repository: https://rh-ai-kickstart.github.io/ai-architecture-charts
-#   - name: llm-service
-#     version: 0.1.0
-#     repository: https://rh-ai-kickstart.github.io/ai-architecture-charts
-#   - name: llama-stack
-#     version: 0.1.0
-#     repository: https://rh-ai-kickstart.github.io/ai-architecture-charts
-#   - name: configure-pipeline
-#     version: 0.1.0
-#     repository: https://rh-ai-kickstart.github.io/ai-architecture-charts
-#   - name: ingestion-pipeline
-#     version: 0.1.0
-#     repository: https://rh-ai-kickstart.github.io/ai-architecture-charts
-  
-

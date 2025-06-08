@@ -19,9 +19,10 @@ import {
   MessageProps,
 } from '@patternfly/chatbot';
 import { DropdownItem, DropdownList } from '@patternfly/react-core';
-import { CHAT_API_ENDPOINT, LLMS_API_ENDPOINT } from '../config/api';
-// import botAvatar from "../assets/img/bot-avatar.svg";
-// import userAvatar from "../assets/img/user-avatar.svg";
+import { Agent } from '@/routes/config/agents';
+import { AGENTS_API_ENDPOINT, CHAT_API_ENDPOINT } from '../config/api';
+import botAvatar from "../assets/img/bot-avatar.svg";
+import userAvatar from "../assets/img/user-avatar.svg";
 import React, { Fragment, useEffect } from 'react';
 
 interface LlamaMessage {
@@ -80,16 +81,12 @@ const fillerInitialConversations: Conversation[] = [
   { id: '12', text: 'Manage user accounts' },
 ];
 
-interface LlamaModel {
-  id: string;
-  name: string;
-  model_type: string;
-}
 
 export function AssistantChat() {
   const [messages, setMessages] = React.useState<MessageProps[]>([]);
-  const [availableModels, setAvailableModels] = React.useState<LlamaModel[]>([]);
-  const [selectedModel, setSelectedModel] = React.useState('');
+  const [availableAgents, setAvailableAgents] = React.useState<Agent[]>([]);
+  const [selectedAgent, setSelectedAgent] = React.useState('');
+  const [selectedAgentName, setSelectedAgentName] = React.useState('');
   const [isSendButtonDisabled, setIsSendButtonDisabled] = React.useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const [conversations, setConversations] = React.useState<
@@ -101,12 +98,18 @@ export function AssistantChat() {
 
   const displayMode = ChatbotDisplayMode.embedded;
 
-  const onSelectModel = (
+  const onSelectAgent = (
     _event: React.MouseEvent<Element, MouseEvent> | undefined,
     value: string | number | undefined
   ) => {
-    setSelectedModel(value as string);
+    setSelectedAgent(value as string);
+    let selAgent = availableAgents.find(obj => obj.id === value);
+    if (selAgent){
+      setSelectedAgentName(selAgent.name);
+    }
   };
+
+  
   const findMatchingItems = (targetValue: string) => {
     const filteredConversations = fillerInitialConversations.filter((convo) =>
       convo.text.includes(targetValue)
@@ -131,25 +134,25 @@ export function AssistantChat() {
 
   // Fetch available models on mount
   useEffect(() => {
-    const fetchModels = async () => {
+    const fetchAgents = async () => {
       try {
-        const response = await fetch(LLMS_API_ENDPOINT);
-        const models = (await response.json()) as LlamaModel[];
-        const llmModels = models.filter((model: LlamaModel) => model.model_type === 'llm');
-        setAvailableModels(llmModels);
-        if (llmModels.length > 0) {
-          setSelectedModel(llmModels[0].id);
+        const response = await fetch(AGENTS_API_ENDPOINT);
+        const agents = (await response.json()) as Agent[];
+        setAvailableAgents(agents);
+        if (agents.length > 0) {
+          setSelectedAgent(agents[0].id);
+          setSelectedAgentName(agents[0].name);
         }
       } catch (err) {
-        console.error('Error fetching models:', err);
-        setAnnouncement('Failed to load LLM models');
+        console.error('Error fetching agents:', err);
+        setAnnouncement('Failed to load agents');
       }
     };
-    void fetchModels();
+    void fetchAgents();
   }, []);
 
   const handleSend = async (message: string) => {
-    if (!selectedModel || !message.trim()) return;
+    if (!selectedAgent || !message.trim()) return;
 
     setIsSendButtonDisabled(true);
     const newMessages: MessageProps[] = [];
@@ -161,7 +164,7 @@ export function AssistantChat() {
       content: message,
       name: 'You',
       timestamp: new Date().toLocaleString(),
-      avatar: '',
+      avatar: userAvatar,
       avatarProps: { isBordered: true },
     });
 
@@ -174,7 +177,7 @@ export function AssistantChat() {
       name: 'Assistant',
       isLoading: true,
       timestamp: new Date().toLocaleString(),
-      avatar: '',
+      avatar: botAvatar,
       avatarProps: { isBordered: true },
     });
 
@@ -198,7 +201,7 @@ export function AssistantChat() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: selectedModel,
+          virtualAssistantId: selectedAgent,
           messages: llamaMessages,
           stream: true,
         }),
@@ -222,13 +225,20 @@ export function AssistantChat() {
 
           for (const line of lines) {
             if (line.startsWith('data: ')) {
-              const text = line.slice(6);
+              let text = line.slice(6);
               if (text.trim() === '[DONE]') {
                 break;
               } else if (text.trim().startsWith('Error:')) {
                 throw new Error(text.trim().slice(7));
               } else if (text) {
                 // Update message content
+                try {
+                  const obj = JSON.parse(text);
+                  text = obj.content || "";
+                } catch (e){
+                  console.log(e);
+                }
+
                 setMessages((prev) => {
                   const updated = [...prev];
                   const lastMsg = updated.find((msg) => msg.id === assistantMessageId);
@@ -301,11 +311,11 @@ export function AssistantChat() {
                 <ChatbotHeaderTitle>Chat</ChatbotHeaderTitle>
               </ChatbotHeaderMain>
               <ChatbotHeaderActions>
-                <ChatbotHeaderSelectorDropdown value={selectedModel} onSelect={onSelectModel}>
+                <ChatbotHeaderSelectorDropdown value={selectedAgentName} onSelect={onSelectAgent}>
                   <DropdownList>
-                    {availableModels.map((model) => (
-                      <DropdownItem value={model.id} key={model.id}>
-                        {model.name}
+                    {availableAgents.map((agent) => (
+                      <DropdownItem value={agent.id} key={agent.id}>
+                        {agent.name}
                       </DropdownItem>
                     ))}
                   </DropdownList>

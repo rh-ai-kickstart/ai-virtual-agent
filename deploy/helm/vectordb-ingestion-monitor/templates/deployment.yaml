@@ -1,4 +1,4 @@
-sdapiVersion: apps/v1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.monitor.name }}
@@ -14,8 +14,8 @@ spec:
       labels:
         app: {{ .Values.monitor.name }}
     spec:
-      securityContext:
-        runAsUser: {{ .Values.securityContext.runAsUser }}
+      # securityContext:
+      #   runAsUser: {{ .Values.securityContext.runAsUser }}
       serviceAccountName: {{ .Values.monitor.serviceAccount.name }}
       containers:
       - name: monitor
@@ -90,25 +90,25 @@ spec:
                   kind: Secret
                   metadata:
                     name: s3-config-{kb_name}
-                    namespace: rag-llama-demo
+                    namespace: {{ .Release.Namespace }}
                   type: Opaque
                   stringData:
-                    SOURCE: "S3"
-                    EMBEDDING_MODEL: "all-MiniLM-L6-v2"
-                    NAME: "{kb_name}"
-                    VERSION: "1"
-                    ACCESS_KEY_ID: "{s3_config_dict.get('access_key_id', '')}"
-                    SECRET_ACCESS_KEY: "{s3_config_dict.get('secret_access_key', '')}"
-                    ENDPOINT_URL: "http://minio:9000"
-                    BUCKET_NAME: "{s3_config_dict.get('bucket_name', '')}"
-                    REGION: "{s3_config_dict.get('region', 'us-east-1')}"
-                  """
-                  
+                        SOURCE: "S3"
+                        EMBEDDING_MODEL: "all-MiniLM-L6-v2"
+                        NAME: "{kb_name}"
+                        VERSION: "1"
+                        ACCESS_KEY_ID: "{s3_config_dict.get('ACCESS_KEY_ID', '')}"
+                        SECRET_ACCESS_KEY: "{s3_config_dict.get('SECRET_ACCESS_KEY', '')}"
+                        ENDPOINT_URL: "{s3_config_dict.get('ENDPOINT_URL', '')}"
+                        BUCKET_NAME: "{s3_config_dict.get('BUCKET_NAME', '')}"
+                        REGION: "{s3_config_dict.get('REGION', 'us-east-1')}"
+                      """
+                      
                   # Add debug logging
                   log(f"S3 Config Dictionary: {s3_config_dict}")
-                  log(f"Access Key ID: {s3_config_dict.get('access_key_id', '')}")
-                  log(f"Secret Access Key: {s3_config_dict.get('secret_access_key', '')}")
-                  log(f"Bucket Name: {s3_config_dict.get('bucket_name', '')}")
+                  log(f"Access Key ID: {s3_config_dict.get('ACCESS_KEY_ID', '')}")
+                  log(f"Secret Access Key: {s3_config_dict.get('SECRET_ACCESS_KEY', '')}")
+                  log(f"Bucket Name: {s3_config_dict.get('BUCKET_NAME', '')}")
                   
                   # Write secret YAML to file
                   with open('/tmp/secret.yaml', 'w') as f:
@@ -129,7 +129,7 @@ spec:
                   apiVersion: batch/v1
                   metadata:
                     name: ingestion-pipeline-{kb_name}
-                    namespace: rag-llama-demo
+                    namespace: {{ .Release.Namespace }}
                     labels:
                       pipelines.kubeflow.org/v2_component: 'true'
                   spec:
@@ -175,9 +175,9 @@ spec:
                               - /bin/bash
                             env:
                               - name: LLAMASTACK_BASE_URL
-                                value: 'http://llamastack.rag-llama-demo.svc.cluster.local:8321'
+                                value: 'http://llamastack.{{ .Release.Namespace }}.svc.cluster.local:8321'
                               - name: DS_PIPELINE_URL
-                                value: 'https://ds-pipeline-dspa.rag-llama-demo.svc.cluster.local:8888'
+                                value: 'https://ds-pipeline-dspa.{{ .Release.Namespace }}.svc.cluster.local:8888'
                             envFrom:
                               - secretRef:
                                   name: s3-config-{kb_name}
@@ -228,6 +228,8 @@ spec:
                   # Update status to failed
                   update_status(kb_name, 'failed', str(e))
 
+          def update_status(kb_name, status, msg):
+            pass
           def process_database_results():
               try:
                   # Keep track of processed knowledge bases
@@ -253,7 +255,7 @@ spec:
                           if line.strip():
                               log(f"Processing line: {line}")
                               kb_name, s3_config = line.split('|')
-                              kb_name = kb_name.strip()
+                              kb_name = kb_name.strip().lower().replace("_", "-").replace(" ", "-")
                               
                               # Skip if already processed
                               if kb_name in processed_kbs:
@@ -334,7 +336,7 @@ spec:
                   query = """
                       SELECT name, source_configuration::text 
                       FROM knowledge_bases 
-                      WHERE is_external = true
+                      WHERE is_external = false
                       AND source_configuration IS NOT NULL
                       AND status = 'pending';
                   """

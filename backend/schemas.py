@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, UUID4, Field
-from typing import Optional, List, Any, Dict # Added Dict for Guardrail rules
+from typing import Optional, List, Any, Dict, Union # Added Dict for Guardrail rules
 import enum
 
 # This should match the Enum in your models.py
@@ -56,7 +56,7 @@ class KnowledgeBaseBase(BaseModel):
     provider_id: Optional[str] = None
     is_external: bool = False
     source: Optional[str] = None
-    source_configuration: Optional[Dict[str, Any]] = None # More specific type
+    source_configuration: Optional[Union[List[str], Dict[str, Any]]] = None # More specific type
 
 class KnowledgeBaseCreate(KnowledgeBaseBase):
     pass

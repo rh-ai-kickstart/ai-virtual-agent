@@ -12,6 +12,7 @@ router = APIRouter(prefix="/knowledge_bases", tags=["knowledge_bases"])
 @router.post("/", response_model=schemas.KnowledgeBaseRead, status_code=status.HTTP_201_CREATED)
 async def create_knowledge_base(kb: schemas.KnowledgeBaseCreate, db: AsyncSession = Depends(get_db)):
     db_kb = models.KnowledgeBase(**kb.model_dump(exclude_unset=True))
+    db_kb.status = "pending"
     db.add(db_kb)
     await db.commit()
     await db.refresh(db_kb)

@@ -53,6 +53,7 @@ class KnowledgeBase(Base):
     is_external = Column(Boolean, nullable=False, default=False)
     source = Column(String(255))
     source_configuration = Column(JSON)
+    status = Column(String(50), nullable=True)
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
     updated_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())

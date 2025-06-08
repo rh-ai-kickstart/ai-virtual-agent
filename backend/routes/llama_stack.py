@@ -252,7 +252,7 @@ async def chat(request: ChatRequest, background_task: BackgroundTasks, db: Async
                 yield f"data: Error  {str(e)}\n\n"
 
         # Save session state to db
-        background_task.add_task(save_session_state, chat, db)
+        # background_task.add_task(save_session_state, chat, db)
         
         return StreamingResponse(
             generate_response(),

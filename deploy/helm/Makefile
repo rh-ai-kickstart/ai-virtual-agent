@@ -16,6 +16,7 @@ MINIO_USER ?= minio_rag_user
 MINIO_PASSWORD ?= minio_rag_password
 HF_TOKEN ?= $(shell bash -c 'read -r -p "Enter Hugging Face Token: " HF_TOKEN; echo $$HF_TOKEN')
 AI_VIRTUAL_ASSISTANT_CHART := ai-virtual-assistant
+VECTORDB_INGESTION_MONIFTOR_CHART := vectordb-ingestion-monitor
 TOLERATIONS_TEMPLATE=[{"key":"$(1)","effect":"NoSchedule","operator":"Exists"}]
 
 #ingestion pipeline configuration
@@ -114,6 +115,9 @@ install: namespace depend
 	@echo "Waiting for model services and llamastack to deploy. It may take around 10-15 minutes depending on the size of the model..."
 	@oc rollout status deploy/llamastack
 	@echo "$(AI_VIRTUAL_ASSISTANT_CHART) installed successfully"
+
+	@echo "Installing $(VECTORDB_INGESTION_MONIFTOR_CHART) helm chart"
+	@helm upgrade --install vectordb-ingestion-monitor vectordb-ingestion-monitor -n $(NAMESPACE)
 
 # Uninstall the deployment and clean up
 .PHONY: uninstall

@@ -14,21 +14,6 @@ async def get_all_tool_groups(db: AsyncSession = Depends(get_db)):
     """Get all tool groups from both MCP servers and builtin tools from LlamaStack"""
     tool_groups = {}
     
-    # Get all MCP servers from database
-    mcp_result = await db.execute(select(models.MCPServer))
-    mcp_servers = mcp_result.scalars().all()
-    
-    for server in mcp_servers:
-        tool_groups[server.toolgroup_id] = {
-            "toolgroup_id": server.toolgroup_id,
-            "name": server.name,
-            "description": server.description,
-            "endpoint_url": server.endpoint_url,
-            "configuration": server.configuration,
-            "created_at": server.created_at.isoformat() if server.created_at else None,
-            "updated_at": server.updated_at.isoformat() if server.updated_at else None
-        }
-    
     # Get builtin tools from LlamaStack
     try:
         response = client.tools.list()
@@ -42,10 +27,10 @@ async def get_all_tool_groups(db: AsyncSession = Depends(get_db)):
             llamastack_tools = []
         
         # Filter for builtin tools (not MCP)
-        builtin_tools = [tool for tool in llamastack_tools if tool.get("provider_id") != "model-context-protocol"]
+        # builtin_tools = [tool for tool in llamastack_tools if tool.get("provider_id") != "model-context-protocol"]
         
         # Group builtin tools by toolgroup_id
-        for tool in builtin_tools:
+        for tool in llamastack_tools:
             toolgroup_id = tool.get("toolgroup_id", tool.get("identifier"))
             if toolgroup_id and toolgroup_id not in tool_groups:
                 tool_groups[toolgroup_id] = {

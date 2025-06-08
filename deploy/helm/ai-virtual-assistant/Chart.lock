@@ -17,5 +17,8 @@ dependencies:
 - name: configure-pipeline
   repository: https://rh-ai-kickstart.github.io/ai-architecture-charts
   version: 0.1.0
-digest: sha256:86aa68b3d84ecaf1e5b3c9a4c44392f8dea14ef3f84adc7893544a18d6f4cc59
-generated: "2025-05-12T23:55:34.064326-04:00"
+- name: ingestion-pipeline
+  repository: https://rh-ai-kickstart.github.io/ai-architecture-charts
+  version: 0.1.0
+digest: sha256:43119339cda35c4352701d9279b9aab2746cb90e6b55d11a6fe09306263524ce
+generated: "2025-06-09T13:16:19.628563-04:00"

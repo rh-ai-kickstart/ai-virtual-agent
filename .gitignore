@@ -28,7 +28,7 @@ venv
 *pycache*
 .venv
 
-assets
+frontend/dist
 backend/public/index.html
 
 charts
