@@ -20,5 +20,8 @@ dependencies:
 - name: ingestion-pipeline
   repository: https://rh-ai-kickstart.github.io/ai-architecture-charts
   version: 0.2.9
-digest: sha256:ee20a14dfeb6fffeb87e5459416b647209395a7f602c9c7734e6271012b8acda
-generated: "2025-06-17T16:23:01.104322255-04:00"
+- name: mcp-dbstore
+  repository: file://../mcp-dbstore
+  version: 0.1.0
+digest: sha256:d425de0dd46cc940bbb8339c47957cf60111f6d35f5a38efbf38bc55084b0b3b
+generated: "2025-07-07T16:43:17.886375-04:00"
