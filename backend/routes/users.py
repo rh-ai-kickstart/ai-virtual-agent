@@ -95,6 +95,50 @@ async def read_user(user_id: UUID, db: AsyncSession = Depends(get_db)):
     return user
 
 
+@router.get("/username/{username}", response_model=schemas.UserRead)
+async def read_user(username: str, db: AsyncSession = Depends(get_db)):
+    """
+    Retrieve a specific user by their username.
+
+    This endpoint fetches a single user's profile information using their username.
+
+    Args:
+        username: The username of the user to retrieve
+        db: Database session dependency
+
+    Returns:
+        schemas.UserRead: The requested user profile
+
+    Raises:
+        HTTPException: 404 if the user is not found
+    """
+    result = await db.execute(select(models.User).where(models.User.username == username))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
+@router.get("/email/{user_email}", response_model=schemas.UserRead)
+async def read_user_by_email(user_email: str, db: AsyncSession = Depends(get_db)):
+    """
+    Retrieve a specific user by their email address.
+    This endpoint fetches a single user's profile information using their email address.
+    Args:
+        user_email: The email of the user to retrieve
+        db: Database session dependency
+    Returns:
+        schemas.UserRead: The requested user profile
+    Raises:
+        HTTPException: 404 if the user is not found
+    """
+    result = await db.execute(select(models.User).where(models.User.email == user_email))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
 @router.put("/{user_id}", response_model=schemas.UserRead)
 async def update_user(
     user_id: UUID, user: schemas.UserBase, db: AsyncSession = Depends(get_db)
