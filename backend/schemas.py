@@ -108,6 +108,7 @@ class KnowledgeBaseRead(KnowledgeBaseBase):
     created_by: Optional[UUID4] = None
     created_at: Any
     updated_at: Any
+    status: str
 
     class Config:
         orm_mode = True

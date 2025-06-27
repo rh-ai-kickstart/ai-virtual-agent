@@ -5,13 +5,13 @@ import {
 import { KnowledgeBase, KnowledgeBaseWithStatus, LSKnowledgeBase } from '@/types';
 import { mergeKnowledgeBasesWithStatus } from '@/utils/knowledge-base-status';
 
-export const fetchKnowledgeBases = async (): Promise<KnowledgeBase[]> => {
+export const fetchKnowledgeBases = async (): Promise<KnowledgeBaseWithStatus[]> => {
   const response = await fetch(KNOWLEDGE_BASES_API_ENDPOINT);
   if (!response.ok) {
     throw new Error('Network response was not ok');
   }
   const data: unknown = await response.json();
-  return data as KnowledgeBase[];
+  return data as KnowledgeBaseWithStatus[];
 };
 
 export const createKnowledgeBase = async (

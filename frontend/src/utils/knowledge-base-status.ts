@@ -1,4 +1,4 @@
-import { KnowledgeBase, KnowledgeBaseWithStatus, KnowledgeBaseStatus } from '@/types';
+import { KnowledgeBaseWithStatus, KnowledgeBaseStatus } from '@/types';
 
 interface LlamaStackKnowledgeBase {
   kb_name: string;
@@ -12,27 +12,25 @@ interface LlamaStackKnowledgeBase {
  * Determines the status of a knowledge base by comparing DB and LlamaStack states
  */
 function determineStatus(
-  dbKb: KnowledgeBase | undefined,
+  dbKb: KnowledgeBaseWithStatus | undefined,
   llamaStackKb: LlamaStackKnowledgeBase | undefined
 ): KnowledgeBaseStatus {
-  if (dbKb && llamaStackKb) {
-    return 'ready'; // Exists in both DB and LlamaStack
-  } else if (dbKb && !llamaStackKb) {
-    return 'pending'; // In DB but not LlamaStack (ingestion running)
-  } else if (!dbKb && llamaStackKb) {
-    return 'orphaned'; // In LlamaStack but not DB (sync issue)
+  if (dbKb) {
+    return dbKb.status
+  } else if (llamaStackKb) {
+    return 'orphaned'
   }
-  // This should never happen, but just in case
-  return 'pending';
+
+  return 'unknown'
 }
 
 /**
  * Simple matching by knowledge base name only
  */
 function findMatchingKnowledgeBase(
-  dbKb: KnowledgeBase | undefined,
+  dbKb: KnowledgeBaseWithStatus | undefined,
   llamaStackKb: LlamaStackKnowledgeBase | undefined
-): { dbMatch: KnowledgeBase | undefined; llamaStackMatch: LlamaStackKnowledgeBase | undefined } {
+): { dbMatch: KnowledgeBaseWithStatus | undefined; llamaStackMatch: LlamaStackKnowledgeBase | undefined } {
   return { dbMatch: dbKb, llamaStackMatch: llamaStackKb };
 }
 
@@ -40,7 +38,7 @@ function findMatchingKnowledgeBase(
  * Merges knowledge bases from database and LlamaStack, determining status for each
  */
 export function mergeKnowledgeBasesWithStatus(
-  dbKnowledgeBases: KnowledgeBase[],
+  dbKnowledgeBases: KnowledgeBaseWithStatus[],
   llamaStackKnowledgeBases: LlamaStackKnowledgeBase[]
 ): KnowledgeBaseWithStatus[] {
   const result: KnowledgeBaseWithStatus[] = [];
@@ -97,11 +95,13 @@ export function mergeKnowledgeBasesWithStatus(
  */
 export function getStatusColor(status: KnowledgeBaseStatus): 'green' | 'orange' | 'red' {
   switch (status) {
-    case 'ready':
+    case 'succeeded':
       return 'green';
-    case 'pending':
+    case 'running':
       return 'orange';
+    case 'failed':
     case 'orphaned':
+    case 'unknown':
       return 'red';
     default:
       return 'orange';
@@ -113,10 +113,12 @@ export function getStatusColor(status: KnowledgeBaseStatus): 'green' | 'orange' 
  */
 export function getStatusLabel(status: KnowledgeBaseStatus): string {
   switch (status) {
-    case 'ready':
-      return 'Ready';
-    case 'pending':
-      return 'Pending';
+    case 'succeeded':
+      return 'Succeeded';
+    case 'running':
+      return 'Running';
+    case 'failed':
+      return 'Failed';
     case 'orphaned':
       return 'Orphaned';
     default:

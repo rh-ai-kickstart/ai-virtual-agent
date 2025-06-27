@@ -50,7 +50,7 @@ export interface Provider {
   api: string;
 }
 
-export type KnowledgeBaseStatus = 'ready' | 'pending' | 'orphaned';
+export type KnowledgeBaseStatus = 'succeeded' | 'running' | 'failed' | 'unknown' | 'orphaned';
 
 export interface KnowledgeBaseWithStatus extends KnowledgeBase {
   status: KnowledgeBaseStatus;

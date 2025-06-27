@@ -52,9 +52,8 @@ async def create_knowledge_base(
     Raises:
         HTTPException: If creation fails or validation errors occur
     """
-    await dispatch_ingestion_pipeline(kb)
+    await create_ingestion_pipeline(kb)
     db_kb = models.KnowledgeBase(**kb.model_dump(exclude_unset=True))
-    db_kb.status = "pending"
     db.add(db_kb)
     await db.commit()
     await db.refresh(db_kb)
@@ -66,6 +65,7 @@ async def create_knowledge_base(
     except Exception as e:
         logger.warning(f"Failed to auto-sync after knowledge base creation: {str(e)}")
 
+    db_kb.status = await get_pipeline_status(db_kb.vector_db_name)
     return db_kb
 
 
@@ -84,7 +84,10 @@ async def read_knowledge_bases(db: AsyncSession = Depends(get_db)):
         List[schemas.KnowledgeBaseRead]: List of all knowledge bases
     """
     result = await db.execute(select(models.KnowledgeBase))
-    return result.scalars().all()
+    kbs = result.scalars().all()
+    for kb in kbs:
+        kb.status = await get_pipeline_status(kb.vector_db_name)
+    return kbs
 
 
 @router.get("/{vector_db_name}", response_model=schemas.KnowledgeBaseRead)
@@ -113,6 +116,8 @@ async def read_knowledge_base(vector_db_name: str, db: AsyncSession = Depends(ge
     kb = result.scalar_one_or_none()
     if not kb:
         raise HTTPException(status_code=404, detail="Knowledge base not found")
+
+    kb.status = await get_pipeline_status(kb.vector_db_name)
     return kb
 
 
@@ -155,12 +160,16 @@ async def delete_knowledge_base(
         logger.info(f"Deleting knowledge base from LlamaStack: {vector_db_name}")
         client.vector_dbs.unregister(vector_db_name)
         logger.info(f"Successfully deleted from LlamaStack: {vector_db_name}")
-
     except Exception as e:
         logger.warning(f"Failed to delete from LlamaStack (may not exist): {str(e)}")
         # Continue with DB deletion even if LlamaStack deletion fails
         # This handles cases where the KB exists
         # in DB but not in LlamaStack (PENDING status)
+
+    try:
+        await delete_ingestion_pipeline(vector_db_name)
+    except Exception as e:
+        logger.warning(f"failed to delete ingestion pipeline: {str(e)}")
 
     # Then delete from database
     await db.delete(db_kb)
@@ -196,9 +205,10 @@ async def sync_knowledge_bases_endpoint(db: AsyncSession = Depends(get_db)):
         )
 
 
-async def dispatch_ingestion_pipeline(kb: schemas.KnowledgeBaseCreate):
+async def create_ingestion_pipeline(kb: schemas.KnowledgeBaseCreate):
     """
-    Internal method that dispatches a new pipeline
+    Internal method that creates a pipeline or a pipeline revision,
+    and runs it.
 
     This method takes in a KnowledgebaseCreate object and converts it
     to a pipeline creation dictionary. It then calls the ingestion-pipeline
@@ -213,12 +223,63 @@ async def dispatch_ingestion_pipeline(kb: schemas.KnowledgeBaseCreate):
     Raises:
         Exception: If the ingestion-pipeline API call fails
     """
-    add_pipeline = os.environ["INGESTION_PIPELINE_URL"] + "/add_pipeline"
+    add_pipeline = os.environ["INGESTION_PIPELINE_URL"] + "/add"
     data = kb.pipeline_model_dict()
-    logger.info(f"Dispatching pipeline to {add_pipeline} {data=}")
+    logger.info(f"Creating pipeline at {add_pipeline} {data=}")
     async with httpx.AsyncClient() as client:
         response = await client.post(add_pipeline, json=data)
         response.raise_for_status()
+
+
+async def delete_ingestion_pipeline(vector_db_name: str):
+    """
+    Internal method that deletes an existing pipeline
+
+    This method takes a vector_db_name and calls the ingestion-pipeline
+    API service to delete the pipeline including all runs and
+    versions.
+
+    Args:
+        vector_db_name: The actual pipeline_name
+
+    Returns:
+        None
+
+    Raises:
+        Exception: If the ingestion-pipeline API call fails
+    """
+    del_pipeline = os.environ["INGESTION_PIPELINE_URL"] + "/delete"
+    data = {"pipeline_name": vector_db_name}
+    logger.info(f"Deleteing pipeline with {del_pipeline} {data=}")
+    async with httpx.AsyncClient() as client:
+        response = await client.delete(del_pipeline, params=data)
+        response.raise_for_status()
+
+
+async def get_pipeline_status(pipeline_name: str) -> str:
+    """
+    Retrieve ingestion pipeline status by pipeline name.
+
+    This endpoint fetches the given ingestion pipeline state from the
+    ingestion-pipeline service API.
+
+    Args:
+        pipeline_name: Pipeline name (vector_db_name)
+
+    Returns:
+        str: The requested ingestion pipeline state
+
+    Raises:
+        Exception: If the ingestion-pipeline API call fails
+    """
+    status_endpoint = os.environ["INGESTION_PIPELINE_URL"] + "/status"
+    data = {"pipeline_name": pipeline_name}
+    logger.info(f"Fetching pipeline status from {status_endpoint} {data=}")
+    async with httpx.AsyncClient() as client:
+        response = await client.get(status_endpoint, params=data)
+        json = response.json()
+        logger.info(f"Received status {json=}")
+        return json.get("state", "unknown")
 
 
 async def sync_knowledge_bases(db: AsyncSession):
@@ -338,6 +399,7 @@ async def sync_knowledge_bases(db: AsyncSession):
         logger.debug("Refreshing synced knowledge bases...")
         for kb in synced_kbs:
             await db.refresh(kb)
+            kb.status = await get_pipeline_status(kb.vector_db_name)
 
         logger.info(f"Sync complete. Synced {len(synced_kbs)} knowledge bases.")
         return synced_kbs
