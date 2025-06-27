@@ -313,6 +313,17 @@ export function KnowledgeBaseForm({
     return JSON.stringify(previewConfig, null, 2);
   };
 
+  const syncVectorDbName = () => {
+    const name = form.getFieldValue('name')?.trim() || '';
+    const version = form.getFieldValue('version')?.trim() || '';
+    const env = form.getFieldValue('source')?.trim() || '';
+
+    const parts = [name, version, env].filter(Boolean);
+    const dbname = parts.join('-');
+
+    form.setFieldValue('vector_db_name', dbname.toLowerCase());
+  };
+
   return (
     <Form
       onSubmit={(e) => {
@@ -332,7 +343,10 @@ export function KnowledgeBaseForm({
               isRequired
               id="kb-form-name"
               value={field.state.value}
-              onChange={(_e, v) => field.handleChange(v)}
+              onChange={(_e, v) => {
+                field.handleChange(v);
+                syncVectorDbName();
+              }}
               validated={
                 !field.state.meta.isTouched
                   ? 'default'
@@ -354,7 +368,10 @@ export function KnowledgeBaseForm({
               isRequired
               id="kb-form-version"
               value={field.state.value}
-              onChange={(_e, v) => field.handleChange(v)}
+              onChange={(_e, v) => {
+                field.handleChange(v);
+                syncVectorDbName();
+              }}
               validated={
                 !field.state.meta.isTouched
                   ? 'default'
@@ -497,6 +514,7 @@ export function KnowledgeBaseForm({
                 if (value === 'URL') {
                   setUrlInputs(['']);
                 }
+                syncVectorDbName();
               }}
               aria-label="Select Source"
               validated={
