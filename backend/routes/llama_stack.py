@@ -19,10 +19,13 @@ like conversation history sidebars.
 
 import json
 import logging
+import os
 from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
+from llama_stack_client.types import InterleavedContent
+from llama_stack_client.types.shared.interleaved_content_item import ImageContentItemImageURL
 from pydantic import BaseModel
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,6 +37,7 @@ from ..api.llamastack import get_client_from_request
 from .chat import Chat
 from .virtual_assistants import read_virtual_assistant
 
+ATTACHMENTS_INTERNAL_API_ENDPOINT = os.getenv("ATTACHMENTS_INTERNAL_API_ENDPOINT", "http://ai-virtual-assistant:8000")
 
 class Message(BaseModel):
     """
@@ -45,7 +49,7 @@ class Message(BaseModel):
     """
 
     role: Literal["user", "assistant", "system"]
-    content: str
+    content: InterleavedContent
 
 
 class VAChatMessage(BaseModel):
@@ -435,6 +439,31 @@ async def chat(
         # Create stateless Chat instance (no longer needs assistant or session_state)
         chat = Chat(log, request)
 
+        # The URLs provided by the request are only the path portion, e.g. /api/attachments/...
+        # LlamaStack expects the full URL, so we need to add the protocol/host/port.
+        def _expand_image_urls(content: InterleavedContent):
+            if isinstance(content, list):
+                for idx, item in enumerate(content):
+                    if item.type == "image" and hasattr(item, "image") and hasattr(getattr(item, "image"), "url"):
+                        current_url = item.image.url
+                        if current_url:
+                            uri = current_url.uri
+                            item.image.url = ImageContentItemImageURL(
+                                uri=f"{ATTACHMENTS_INTERNAL_API_ENDPOINT}{uri}"
+                            )
+                            content[idx] = item
+            elif isinstance(content, dict):
+                for key, value in content.items():
+                    if key == "image" and hasattr(value, "url"):
+                        current_url = value.url
+                        if current_url:
+                            uri = current_url.uri
+                            value.url = ImageContentItemImageURL(
+                                uri=f"{ATTACHMENTS_INTERNAL_API_ENDPOINT}{uri}"
+                            )
+                            content[key] = value
+            return content
+
         def generate_response():
             try:
                 if len(chatRequest.messages) > 0:
@@ -443,7 +472,7 @@ async def chat(
 
                     def chat_stream():
                         for chunk in chat.stream(
-                            agent_id, session_id, last_message.content
+                            agent_id, session_id, _expand_image_urls(last_message.content)
                         ):
                             yield f"data: {chunk}\n\n"
                         yield "data: [DONE]\n\n"
@@ -499,13 +528,20 @@ async def save_session_metadata(
     try:
         # Generate title from first user message
         title = "New Chat"
+        title_set = False
         if messages:
+            txt = ""
             # Find first user message for title
             for msg in messages:
                 if msg.role == "user":
-                    content = msg.content
-                    title = content[:50] + "..." if len(content) > 50 else content
-                    break
+                    for item in msg.content:
+                        if hasattr(item, "text"):
+                            txt = item.text
+                            title_set = True
+                            break
+                    title = txt[:50] + "..." if len(txt) > 50 else txt[:50]
+                    if title_set:
+                        break
 
         # Get agent name
         agent_name = "Unknown Agent"
