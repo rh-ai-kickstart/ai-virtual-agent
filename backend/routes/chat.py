@@ -7,6 +7,8 @@ from typing import List
 from fastapi import Request
 from llama_stack_client.lib.agents.react.tool_parser import ReActOutput
 from llama_stack_client.types.shared_params.agent_config import AgentConfig, Toolgroup
+from llama_stack_client.types.shared.user_message import UserMessage
+from llama_stack_client.types.shared.interleaved_content import InterleavedContent
 
 from ..agents import ExistingAsyncAgent, ExistingReActAgent
 from ..api.llamastack import get_client_from_request
@@ -503,7 +505,7 @@ class Chat:
                     }
                 )
 
-    def stream(self, agent_id: str, session_id: str, prompt: str):
+    def stream(self, agent_id: str, session_id: str, content: InterleavedContent):
         """
         Stream chat response using LlamaStack as the single source of truth.
 
@@ -521,7 +523,7 @@ class Chat:
             # Get existing messages from the session
             # Note: LlamaStack manages session state, so we don't need to
             # maintain local state
-            messages = [{"role": "user", "content": prompt}]
+            messages = [UserMessage(role="user", content=content)]
 
             async def async_iterator_to_iterator():
                 # Create turn with LlamaStack

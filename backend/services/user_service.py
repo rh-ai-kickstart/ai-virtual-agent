@@ -9,9 +9,9 @@ This service handles user-specific agent operations including:
 import logging
 from typing import List
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 
-from ..api.llamastack import client
+from ..api.llamastack import get_client_from_request
 
 log = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ class UserService:
 
     @staticmethod
     async def assign_agents_to_user(
-        user_agent_ids: List[str], requested_agent_ids: List[str]
+        user_agent_ids: List[str], requested_agent_ids: List[str], request: Request
     ) -> List[str]:
         """
         Add requested agents to user's agent list, preventing duplicates.
@@ -62,6 +62,7 @@ class UserService:
         # Verify all requested agents exist in LlamaStack
         for agent_id in requested_agent_ids:
             try:
+                client = get_client_from_request(request)
                 client.agents.retrieve(agent_id=agent_id)  # type: ignore
                 log.info(f"Verified agent exists: {agent_id}")
             except Exception as e:

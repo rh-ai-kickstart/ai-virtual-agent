@@ -212,6 +212,7 @@ async def delete_user(user_id: UUID, db: AsyncSession = Depends(get_db)):
 async def update_user_agents(
     user_id: UUID,
     agent_assignment: schemas.UserAgentAssignment,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -246,6 +247,7 @@ async def update_user_agents(
     updated_agent_ids = await UserService.assign_agents_to_user(
         user_agent_ids=current_agent_ids,
         requested_agent_ids=agent_assignment.agent_ids,
+        request=request,
     )
 
     # Update user's agent assignments with the updated agent IDs
