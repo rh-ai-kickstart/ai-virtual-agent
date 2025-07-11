@@ -196,7 +196,7 @@ Watch the **llamastack** pod as that one becomes available after all the model s
 1. Get the route url for the application and open in your browser
 
 ```bash
-URL=http://$(oc get routes -l app.kubernetes.io/name=rag -o jsonpath="{range .items[*]}{.status.ingress[0].host}{end}")
+URL=http://$(oc get routes --field-selector metadata.name=ai-virtual-assistant  -o jsonpath="{range .items[*]}{.status.ingress[0].host}{end}")
 echo $URL
 open $URL
 ```
