@@ -1,6 +1,6 @@
 # AI Virtual Agent
 
-A comprehensive platform for creating and managing AI-powered virtual agents with knowledge base integration, built on top of LlamaStack.Use this to quickly create AI Virtual Agent for different user personas such as lawyer, accountants and marketers.
+A comprehensive platform for creating and managing AI-powered virtual agents with knowledge base integration, built on top of LlamaStack. Use this to quickly create AI Virtual Agent for different user personas such as lawyer, accountants and marketers.
 
 To see how it's done, refer to the [installation guide](INSTALLING.md).
 
