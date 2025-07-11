@@ -1,12 +1,12 @@
 import { useState, useCallback, useEffect } from 'react';
 import { LlamaStackParser, extractSessionId } from '../adapters/llamaStackAdapter';
 import { CHAT_API_ENDPOINT } from '../config/api';
-import { fetchChatSession } from '@/services/chat-sessions';
+import { fetchChatSession, SimpleContentItem } from '@/services/chat-sessions';
 
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
-  content: string;
+  content: SimpleContentItem[];
   timestamp: Date;
 }
 
@@ -23,6 +23,7 @@ export function useChat(agentId: string, options?: UseLlamaChatOptions) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<{file: File, data: string}[]>([]);
 
   const handleInputChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, value?: string | number) => {
@@ -33,7 +34,7 @@ export function useChat(agentId: string, options?: UseLlamaChatOptions) {
   );
   interface SessionMessage {
     role: 'user' | 'assistant' | 'system';
-    content: string;
+    content: SimpleContentItem[];
   }
   const loadSession = useCallback(
     async (sessionId: string) => {
@@ -75,14 +76,18 @@ export function useChat(agentId: string, options?: UseLlamaChatOptions) {
     [agentId, options]
   );
 
+  const clearAttachedFiles = useCallback(() => {
+    setAttachedFiles([]);
+  }, []);
+
   const sendMessage = useCallback(
-    async (content: string) => {
-      if (!content.trim() || isLoading) return;
+    async (content: SimpleContentItem[]) => {
+      if (isLoading) return;
 
       const userMessage: ChatMessage = {
         id: `user-${Date.now()}`,
         role: 'user',
-        content: content.trim(),
+        content: content,
         timestamp: new Date(),
       };
 
@@ -121,7 +126,10 @@ export function useChat(agentId: string, options?: UseLlamaChatOptions) {
         const assistantMessage: ChatMessage = {
           id: `assistant-${Date.now()}`,
           role: 'assistant',
-          content: '',
+          content: [{
+            text: '',
+            type: 'text',
+          }],
           timestamp: new Date(),
         };
 
@@ -171,7 +179,10 @@ export function useChat(agentId: string, options?: UseLlamaChatOptions) {
                   const updated = [...prev];
                   const lastMsg = updated[updated.length - 1];
                   if (lastMsg && lastMsg.role === 'assistant') {
-                    lastMsg.content += parsed;
+                    // The assistant will only ever reply with a text message, never an image
+                    let c: SimpleContentItem[] = [...lastMsg.content];
+                    c[0].text += parsed;
+                    lastMsg.content = c;
                   }
                   return updated;
                 });
@@ -185,26 +196,43 @@ export function useChat(agentId: string, options?: UseLlamaChatOptions) {
         options?.onError?.(new Error(errorMessage));
 
         // Remove the loading assistant message on error
-        setMessages((prev) => prev.filter((msg) => msg.role !== 'assistant' || msg.content !== ''));
+        setMessages((prev) => prev.filter((msg) => {
+          msg.role !== 'assistant' || msg.content.length > 0
+        }));
       } finally {
         setIsLoading(false);
       }
     },
-    [agentId, messages, sessionId, isLoading, options]
+    [agentId, messages, sessionId, isLoading, options, attachedFiles]
   );
 
-  const handleSubmit = useCallback(
-    (event: React.FormEvent) => {
-      event.preventDefault();
-      if (input.trim()) {
-        void sendMessage(input);
+  const handleAttach = useCallback(
+    async (data: File[]) => {
+      const fileToBase64 = (file: File): Promise<{file: File, data: string}> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            const base64 = result.split(',')[1];
+            resolve({file, data: base64});
+          };
+          reader.onerror = () => {
+            reject(new Error('Failed to read file'));
+          };
+          reader.readAsDataURL(file);
+        });
       }
+      setIsLoading(true);
+      const processedData: {file: File, data: string}[] = await Promise.all(data.map(fileToBase64));
+      setAttachedFiles((prev: {file: File, data: string}[]) => [...prev, ...processedData]);
+      setIsLoading(false);
     },
-    [input, sendMessage]
+    []
   );
+
 
   const append = useCallback(
-    (message: { role: 'user' | 'assistant'; content: string }) => {
+    (message: { role: 'user' | 'assistant'; content: SimpleContentItem[] }) => {
       void sendMessage(message.content);
     },
     [sendMessage]
@@ -214,6 +242,7 @@ export function useChat(agentId: string, options?: UseLlamaChatOptions) {
   useEffect(() => {
     setMessages([]);
     setInput('');
+    setAttachedFiles([]);
     setIsLoading(false);
     setSessionId(null);
   }, [agentId]);
@@ -222,10 +251,13 @@ export function useChat(agentId: string, options?: UseLlamaChatOptions) {
     messages,
     input,
     handleInputChange,
-    handleSubmit,
+    handleAttach,
     append,
     isLoading,
     loadSession,
     sessionId,
+    attachedFiles,
+    setAttachedFiles,
+    clearAttachedFiles,
   };
 }

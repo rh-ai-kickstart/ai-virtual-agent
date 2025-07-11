@@ -13,6 +13,7 @@ import {
   ChatbotHeaderSelectorDropdown,
   ChatbotHeaderTitle,
   Conversation,
+  FileDetailsLabel,
   Message,
   MessageBar,
   MessageBox,
@@ -27,6 +28,9 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
+  Panel,
+  PanelMain,
+  PanelMainBody,
 } from '@patternfly/react-core';
 import { Agent } from '@/routes/config/agents';
 import { fetchAgents } from '@/services/agents';
@@ -36,6 +40,7 @@ import {
   createChatSession,
   deleteChatSession,
   ChatSessionSummary,
+  SimpleContentItem,
 } from '@/services/chat-sessions';
 import { useMutation } from '@tanstack/react-query';
 import botAvatar from "../assets/img/bot-avatar.svg";
@@ -86,6 +91,10 @@ export function Chat() {
     isLoading,
     loadSession,
     sessionId,
+    attachedFiles,
+    handleAttach,
+    clearAttachedFiles,
+    setAttachedFiles,
   } = useChat(selectedAgent || 'default', {
     onError: (error: Error) => {
       console.error('Chat error:', error);
@@ -99,6 +108,22 @@ export function Chat() {
     },
   });
 
+  const contentToText = (content: SimpleContentItem): string => {
+    if (content.type === 'text') {
+      return content.text || '';
+    }
+
+    if (content.type === 'image') {
+      // TODO: Display image contents
+    }
+
+    return '';
+  }
+
+  const multipleContentToText = (content: SimpleContentItem[]): string => {
+    return content.map(m => contentToText(m)).join('\n');
+  };
+
   // Convert our chat messages to PatternFly format
   const messages = React.useMemo(
     () =>
@@ -106,7 +131,7 @@ export function Chat() {
         (msg): MessageProps => ({
           id: msg.id,
           role: msg.role === 'user' ? 'user' : 'bot',
-          content: msg.content,
+          content: multipleContentToText(msg.content),
           name: msg.role === 'user' ? 'You' : 'Assistant',
           timestamp: msg.timestamp.toLocaleString(),
           avatar: msg.role === 'user' ? userAvatar : botAvatar,
@@ -383,15 +408,20 @@ export function Chat() {
     console.log('Current session ID:', sessionId);
     if (typeof message === 'string' && message.trim() && selectedAgent) {
       console.log('Sending message via append:', message, 'using session:', sessionId);
+      let contents: SimpleContentItem[] = [];
+      contents.push({type: 'text', text: message});
+      for (const file of attachedFiles) {
+        contents.push({type: 'image', image: {data: file.data}});
+      }
       // Add the message to the chat
       append({
         role: 'user',
-        content: message.toString(),
+        content: contents,
       });
+      clearAttachedFiles();
     } else {
       console.log('Message not sent - conditions not met:', {
         messageType: typeof message,
-        messageLength: typeof message === 'string' ? message.trim().length : 0,
         selectedAgent: selectedAgent,
       });
     }
@@ -471,13 +501,32 @@ export function Chat() {
               </MessageBox>
             </ChatbotContent>
             <ChatbotFooter>
-              <MessageBar
-                onSendMessage={handleSendMessage as (message: string | number) => void}
-                hasMicrophoneButton
-                isSendButtonDisabled={isLoading || !selectedAgent}
-                value={input}
-                onChange={handleInputChange}
-              />
+              <Panel variant="secondary">
+                <PanelMain>
+                  <PanelMainBody>
+                  <div style={{display: 'flex', flexWrap: 'wrap', paddingTop: '0.5em', paddingBottom: '0.5em'}}>
+                    {attachedFiles.map((file, index) => (
+                      <div key={file.file.name} style={{margin: '0.5em'}}>
+                        <FileDetailsLabel
+                          fileName={file.file.name}
+                          onClose={() => {
+                            setAttachedFiles(attachedFiles.filter((_, i) => i !== index));
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <MessageBar
+                    onSendMessage={handleSendMessage as (message: string | number) => void}
+                    hasMicrophoneButton
+                    isSendButtonDisabled={isLoading || !selectedAgent}
+                    value={input}
+                    onChange={handleInputChange}
+                    handleAttach={handleAttach}
+                  />
+                  </PanelMainBody>
+                </PanelMain>
+              </Panel>
               <ChatbotFootnote {...footnoteProps} />
             </ChatbotFooter>
           </Fragment>
