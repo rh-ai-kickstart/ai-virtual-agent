@@ -235,11 +235,11 @@ graph TD
         PG[(pgvector<br/>• Embeddings<br/>• Vector Search)]
     end
 
-    MON →|Monitor| DB
-    MON →|Create Jobs| KFP
-    KFP →|Fetch Documents| S3
-    KFP →|Register & Store| LS
-    LS →|Store Vectors| PG
+    MON --> |Monitor| DB
+    MON --> |Create Jobs| KFP
+    KFP --> |Fetch Documents| S3
+    KFP --> |Register & Store| LS
+    LS --> |Store Vectors| PG
 ```
 
 **Ingestion Components:**
