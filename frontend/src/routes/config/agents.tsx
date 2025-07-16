@@ -12,6 +12,8 @@ export interface Agent {
   prompt: string;
   tools: ToolAssociationInfo[];
   knowledge_base_ids: string[];
+  input_shields: string[];
+  output_shields: string[];
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -25,6 +27,8 @@ export interface NewAgent {
   prompt: string;
   tools: ToolAssociationInfo[];
   knowledge_base_ids: string[];
+  input_shields: string[];
+  output_shields: string[];
 }
 
 export const Route = createFileRoute('/config/agents')({

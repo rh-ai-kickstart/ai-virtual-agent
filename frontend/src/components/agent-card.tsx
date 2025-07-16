@@ -210,6 +210,34 @@ export function AgentCard({ agent }: AgentCardProps) {
                     : 'None'}
                 </Flex>
               </FlexItem>
+              <FlexItem>
+                <Flex gap={{ default: 'gapSm' }}>
+                  <FlexItem>
+                    <span className="pf-v6-u-text-color-subtle">Input Shields: </span>
+                  </FlexItem>
+                  {agent.input_shields.length > 0
+                    ? agent.input_shields.map((shield, index) => (
+                        <FlexItem key={index}>
+                          <Label color="green">{shield}</Label>
+                        </FlexItem>
+                      ))
+                    : 'None'}
+                </Flex>
+              </FlexItem>
+              <FlexItem>
+                <Flex gap={{ default: 'gapSm' }}>
+                  <FlexItem>
+                    <span className="pf-v6-u-text-color-subtle">Output Shields: </span>
+                  </FlexItem>
+                  {agent.output_shields.length > 0
+                    ? agent.output_shields.map((shield, index) => (
+                        <FlexItem key={index}>
+                          <Label color="purple">{shield}</Label>
+                        </FlexItem>
+                      ))
+                    : 'None'}
+                </Flex>
+              </FlexItem>
             </Flex>
           </CardBody>
         </CardExpandableContent>

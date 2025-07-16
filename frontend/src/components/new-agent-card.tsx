@@ -2,8 +2,10 @@ import { Agent, NewAgent } from '@/routes/config/agents';
 import { createAgent } from '@/services/agents';
 import { fetchLlamaStackKnowledgeBases } from '@/services/knowledge-bases';
 import { fetchModels } from '@/services/models';
+import { fetchShields } from '@/services/shields';
 import { fetchTools } from '@/services/tools';
 import { LSKnowledgeBase, Model, ToolGroup } from '@/types';
+import { Shield } from '@/services/shields';
 import {
   Alert,
   Card,
@@ -51,6 +53,16 @@ export function NewAgentCard() {
   } = useQuery<ToolGroup[], Error>({
     queryKey: ['tools'],
     queryFn: fetchTools,
+  });
+
+  // Query for shields
+  const {
+    data: shields,
+    isLoading: isLoadingShields,
+    error: shieldsError,
+  } = useQuery<Shield[], Error>({
+    queryKey: ['shields'],
+    queryFn: fetchShields,
   });
 
   // Mutation for creating an Agent
@@ -125,6 +137,11 @@ export function NewAgentCard() {
                       tools: tools || [],
                       isLoadingTools,
                       toolsError,
+                    }}
+                    shieldsProps={{
+                      shields: shields || [],
+                      isLoadingShields,
+                      shieldsError,
                     }}
                     onSubmit={handleCreateAgent}
                     isSubmitting={agentMutation.isPending}
