@@ -30,6 +30,7 @@ from .routes import (
     virtual_assistants,
 )
 from .utils.logging_config import get_logger, setup_logging
+from .utils.agent_initializer import initialize_agents_from_config
 
 load_dotenv()
 
@@ -55,7 +56,7 @@ async def on_startup():
     """
     Initialize application on startup by syncing external resources.
 
-    Synchronizes MCP servers, model servers, and knowledge bases with
+    Synchronizes MCP servers, model servers, knowledge bases, and agents with
     their external sources (LlamaStack, etc.) to ensure consistency.
     """
     try:
@@ -75,6 +76,12 @@ async def on_startup():
             await knowledge_bases.sync_knowledge_bases(session)
         except Exception as e:
             logger.error(f"Failed to sync knowledge bases on startup: {str(e)}")
+
+    # Initialize agents from YAML configuration
+    try:
+        await initialize_agents_from_config()
+    except Exception as e:
+        logger.error(f"Failed to initialize agents from config on startup: {str(e)}")
 
 
 app.include_router(users.router, prefix="/api")
