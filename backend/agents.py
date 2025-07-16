@@ -27,21 +27,20 @@ class ExistingAgent(Agent):
         client_tools: Tuple[ClientTool, ...] = (),
         tool_parser: Optional[ToolParser] = None,
     ):
-        # Call parent's __init__ but skip the initialize() call
-        self.client = client
-        self.model = model
-        self.instructions = instructions
-        self.tools = tools or []
-        self.tool_config = tool_config
-        self.sampling_params = sampling_params
-        self.max_infer_iters = max_infer_iters
-        self.agent_config = agent_config
-        self.client_tools = client_tools
-        self.tool_parser = tool_parser
-        self.sessions = []
-        self.builtin_tools = {}
+        super().__init__(
+            client=client,
+            model=model,
+            instructions=instructions,
+            tools=tools,
+            tool_config=tool_config,
+            sampling_params=sampling_params,
+            max_infer_iters=max_infer_iters,
+            agent_config=agent_config,
+            client_tools=client_tools,
+            tool_parser=tool_parser,
+        )
 
-        # Set the agent_id directly instead of calling initialize()
+        # Manually set agent ID (assuming it’s safe to override)
         self.agent_id = agent_id
 
 

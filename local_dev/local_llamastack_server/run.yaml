@@ -1,0 +1,50 @@
+version: '2'
+image_name: ollama
+docker_image: null
+conda_env: ollama
+apis:
+- agents
+- inference
+- safety
+- telemetry
+- vector_io
+- tool_runtime
+providers:
+  inference:
+  - provider_id: ollama
+    provider_type: remote::ollama
+    config:
+      url: http://host.docker.internal:11434
+  safety:
+  - provider_id: llama-guard
+    provider_type: inline::llama-guard
+    config: {}
+  agents:
+  - provider_id: meta-reference
+    provider_type: inline::meta-reference
+    config:
+      persistence_store:
+        type: sqlite
+        namespace: null
+        db_path: /root/.llama/distributions/ollama/agents_store.db
+      responses_store:
+          type: sqlite
+          db_path: /root/.llama/distributions/ollama/agents_responses_store.db
+          namespace: null
+  telemetry:
+  - provider_id: meta-reference
+    provider_type: inline::meta-reference
+    config: {}
+metadata_store:
+  namespace: null
+  type: sqlite
+  db_path: /root/.llama/distributions/ollama/registry.db
+models:
+- metadata: {}
+  model_id: llama3.2:3b-instruct-fp16
+  provider_id: ollama
+shields: []
+memory_banks: []
+datasets: []
+scoring_fns: []
+eval_tasks: []

@@ -122,6 +122,16 @@ Before you begin, ensure you have the following installed:
    - API documentation: `http://localhost:8000/docs`
    - Alternative docs: `http://localhost:8000/redoc`
 
+6. Start Local LLamaStack Server:
+
+   This step is optional, use it if you don't have an active llamastack server.
+   Open a new terminal:
+   ```bash
+   cd local_dev/local_llamastack_server/
+   chmod +x activate_llama_server.sh
+   bash activate_llama_server.sh
+   ```
+
 ### Frontend Setup
 
 1. In a new terminal, navigate to the frontend directory:
@@ -385,6 +395,13 @@ Before making significant changes, familiarize yourself with the system architec
 **Backend won't start:**
 - Check Python version (requires 3.10+)
 - Verify PostgreSQL is running and accessible
+   use:
+   ```bash
+   podman ps # see that docker.io/library/postgres:15 is up
+
+   # Log in to the DB:
+   psql -h localhost -p 5432 -U admin -d ai_virtual_assistant
+   ```
 - Ensure all environment variables are set
 
 **Frontend build fails:**
