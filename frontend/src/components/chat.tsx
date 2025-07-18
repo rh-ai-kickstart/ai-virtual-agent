@@ -29,8 +29,9 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import { Agent } from '@/routes/config/agents';
-import { fetchAgents } from '@/services/agents';
+import { fetchUserAgents } from '@/services/agents';
 import { useChat } from '@/hooks/useChat';
+import { useCurrentUser } from '@/contexts/UserContext';
 import {
   fetchChatSessions,
   createChatSession,
@@ -76,6 +77,9 @@ export function Chat() {
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
   const scrollToBottomRef = React.useRef<HTMLDivElement>(null);
   const historyRef = React.useRef<HTMLButtonElement>(null);
+
+  // Get current user context
+  const { currentUser, isLoading: isUserLoading, error: userError, refetch: refetchUser } = useCurrentUser();
 
   // Use our custom hook for chat functionality - only when we have a valid agent
   const {
@@ -346,27 +350,34 @@ export function Chat() {
     [sessionId, loadSession, setAnnouncement, createSessionMenuItems]
   );
 
-  // Fetch available agents on mount
+  // Fetch available agents on mount - only when user is loaded
   useEffect(() => {
     const fetchAgentsData = async () => {
+      // TODO: This currently fetches agents for the first user in the database.
+      // Once proper authentication is implemented, this should fetch agents for the authenticated user.
+      if (!currentUser) return;
+
       try {
-        console.log('Fetching agents on app load...');
-        const agents = await fetchAgents();
+        console.log('Fetching agents for user:', currentUser.id);
+        const agents = await fetchUserAgents(currentUser.id);
         setAvailableAgents(agents);
         if (agents.length > 0) {
           const firstAgent = agents[0].id;
           console.log('Setting first agent:', firstAgent);
           setSelectedAgent(firstAgent);
           // Don't fetch sessions here - let the selectedAgent useEffect handle it
+        } else {
+          console.log('No agents found for user:', currentUser.id);
+          setAnnouncement('No agents assigned to this user');
         }
       } catch (err) {
-        console.error('Error fetching agents:', err);
-        setAnnouncement('Failed to load agents');
+        console.error('Error fetching user agents:', err);
+        setAnnouncement('Failed to load user agents');
       }
     };
 
     void fetchAgentsData();
-  }, []);
+  }, [currentUser]);
 
   // Handle selectedAgent changes - fetch sessions for the new agent
   useEffect(() => {
@@ -396,6 +407,27 @@ export function Chat() {
       });
     }
   };
+
+  // Handle loading and error states for user context
+  if (isUserLoading) {
+    return (
+      <div>
+        <p>Loading user information...</p>
+      </div>
+    );
+  }
+
+  if (userError || !currentUser) {
+    return (
+      <div>
+        <p>Error loading user: {userError || 'User not found'}</p>
+        <p>Please ensure at least one user exists in the database.</p>
+        <Button variant="primary" onClick={() => refetchUser()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <Chatbot displayMode={displayMode}>
