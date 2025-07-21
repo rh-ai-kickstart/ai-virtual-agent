@@ -15,7 +15,7 @@ import {
   AccordionToggle,
   AccordionContent,
   Tooltip,
-  Slider,
+
   SliderOnChangeEvent,
 } from '@patternfly/react-core';
 import { useForm } from '@tanstack/react-form';

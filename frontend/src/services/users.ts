@@ -20,6 +20,31 @@ export const fetchUsers = async (): Promise<User[]> => {
   return data as User[];
 };
 
+export const fetchCurrentUser = async (): Promise<User> => {
+  const response = await fetch(`${USERS_API_ENDPOINT}profile/`);
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      const contentType = response.headers.get('content-type');
+
+      if (contentType?.includes('text/html')) {
+        const loginHtml = await response.text();
+        sessionStorage.setItem('auth_return_url', window.location.pathname + window.location.search);
+
+        const error = new Error('OAUTH_LOGIN_REQUIRED');
+        (error as any).loginHtml = loginHtml;
+        throw error;
+      }
+
+      throw new Error('User not authenticated');
+    }
+    throw new Error('Failed to fetch current user');
+  }
+
+  const data: unknown = await response.json();
+  return data as User;
+};
+
 export const fetchUserById = async (userId: string): Promise<User> => {
   const response = await fetch(`${USERS_API_ENDPOINT}${userId}`);
   if (!response.ok) {
