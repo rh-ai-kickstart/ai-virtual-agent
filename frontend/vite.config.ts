@@ -9,7 +9,8 @@ export default defineConfig({
     // Please make sure that '@tanstack/router-plugin' is passed before '@vitejs/plugin-react'
     TanStackRouterVite({ target: 'react', autoCodeSplitting: true }),
     react(),
-    // ...,
+    // YAML plugin removed due to type compatibility issues
+    // YAML files are handled via API calls instead
   ],
   resolve: {
     alias: {
@@ -20,7 +21,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
     },

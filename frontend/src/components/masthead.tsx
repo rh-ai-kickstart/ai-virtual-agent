@@ -72,7 +72,7 @@ export function Masthead({
     <Nav variant="horizontal" aria-label="Main Nav">
       <NavList>
         <NavItem itemId={0} isActive={location.pathname == '/'} to="#">
-          <Link to="/">
+          <Link to="/" search={{ agentId: undefined }}>
             <Flex
               direction={{ default: 'row' }}
               alignItems={{ default: 'alignItemsCenter' }}
@@ -163,7 +163,7 @@ export function Masthead({
       <MastheadMain>
         {showSidebarToggle && <MastheadToggle>{toggle}</MastheadToggle>}
         <MastheadBrand data-codemods>
-          <Title headingLevel="h1">Virtual Assistant</Title>
+          <Title headingLevel="h1">AaaS</Title>
         </MastheadBrand>
       </MastheadMain>
       <MastheadContent>{toolbar}</MastheadContent>

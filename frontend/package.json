@@ -29,11 +29,13 @@
     "@tanstack/react-router-devtools": "^1.119.1",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.5",
+    "lucide-react": "^0.525.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
+    "@rollup/plugin-yaml": "^4.1.2",
     "@tanstack/router-plugin": "^1.119.0",
     "@types/node": "^22.15.13",
     "@types/react": "^19.1.3",

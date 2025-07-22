@@ -9,7 +9,7 @@ Key Features:
 - List available LLM models from LlamaStack
 - Stream chat responses with session management
 - Automatic session metadata storage for UI persistence
-- Integration with virtual assistant configurations
+- Integration with AaaS configurations
 - Background task processing for database operations
 
 The module handles real-time streaming chat interactions while maintaining
@@ -50,7 +50,7 @@ class Message(BaseModel):
 
 class VAChatMessage(BaseModel):
     """
-    Extended chat message format for Virtual Assistant interface compatibility.
+    Extended chat message format for AaaS interface compatibility.
 
     This format extends the basic Message format to include additional fields
     required by frontend chat interfaces and streaming implementations.
@@ -142,7 +142,7 @@ async def get_knowledge_bases():
 
     Fetches the complete list of vector databases available in LlamaStack,
     which represent knowledge bases that can be used for RAG (Retrieval
-    Augmented Generation) operations with virtual assistants.
+    Augmented Generation) operations with AaaSs.
 
     Returns:
         List of dictionaries containing knowledge base information:
@@ -175,7 +175,7 @@ async def get_tools():
 
     Fetches tool groups that represent MCP servers configured in LlamaStack.
     These servers provide external tools and capabilities that can be used
-    by virtual assistants during conversations.
+    by AaaSs during conversations.
 
     Returns:
         List of dictionaries containing MCP server information:
@@ -336,16 +336,54 @@ async def get_providers():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/toolgroups", response_model=List[Dict[str, Any]])
+async def get_toolgroups():
+    """
+    Retrieve all available tool groups directly from LlamaStack.
+    
+    This endpoint proxies to LlamaStack's /v1/toolgroups endpoint to get
+    the complete tool group data including MCP endpoints and configuration.
+
+    Returns:
+        List of dictionaries containing complete tool group information:
+        - identifier: The tool group identifier
+        - provider_resource_id: Provider resource identifier
+        - provider_id: Provider identifier
+        - type: Tool group type
+        - mcp_endpoint: MCP endpoint configuration (if applicable)
+        - args: Additional arguments
+
+    Raises:
+        HTTPException: If LlamaStack communication fails
+    """
+    try:
+        import httpx
+        import os
+        
+        llamastack_url = os.getenv("LLAMASTACK_URL", "http://localhost:8321")
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{llamastack_url}/v1/toolgroups")
+            response.raise_for_status()
+            data = response.json()
+            
+            # Return the data in the same format as the curl command
+            return data.get("data", [])
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 class ChatRequest(BaseModel):
     """
     Request model for LlamaStack chat interactions.
 
     Defines the structure for chat requests sent to the LlamaStack chat endpoint.
-    Includes virtual assistant selection, conversation history, streaming preferences,
+    Includes AaaS selection, conversation history, streaming preferences,
     and session management.
 
     Attributes:
-        virtualAssistantId: The ID of the virtual assistant/agent to use for chat
+        virtualAssistantId: The ID of the AaaS/agent to use for chat
         messages: List of conversation messages (user, assistant, system)
         stream: Whether to stream the response (default: False)
         sessionId: Optional session ID for conversation continuity
@@ -370,7 +408,7 @@ async def chat(
     agents while maintaining session state. Automatically saves session metadata
     to the database for UI features like conversation history sidebars.
 
-    The endpoint validates the virtual assistant exists, requires a session ID,
+    The endpoint validates the AaaS exists, requires a session ID,
     and streams responses in Server-Sent Events format. Session metadata is
     saved asynchronously to avoid blocking the chat response.
 
@@ -384,7 +422,7 @@ async def chat(
 
     Raises:
         HTTPException:
-            - 404 if virtual assistant not found in LlamaStack
+            - 404 if AaaS not found in LlamaStack
             - 400 if session ID is missing
             - 500 for internal server errors during chat processing
     """
@@ -401,7 +439,7 @@ async def chat(
             )
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Virtual assistant {request.virtualAssistantId} not found",
+                detail=f"AaaS {request.virtualAssistantId} not found",
             )
 
         # Use the agent_id directly from LlamaStack
@@ -475,7 +513,7 @@ async def save_session_metadata(
     Args:
         db: Database session for executing queries
         session_id: Unique identifier for the chat session
-        agent_id: ID of the virtual assistant/agent used in the session
+        agent_id: ID of the AaaS/agent used in the session
         messages: List of conversation messages for title generation
 
     Note:

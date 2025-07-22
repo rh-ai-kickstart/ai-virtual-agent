@@ -1,4 +1,5 @@
 import React, { Fragment, useEffect, useState, useCallback } from 'react';
+import { useSearch, useNavigate } from '@tanstack/react-router';
 import {
   Chatbot,
   ChatbotContent,
@@ -27,9 +28,14 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
+  Flex,
+  Breadcrumb,
+  BreadcrumbItem,
 } from '@patternfly/react-core';
+import { AngleLeftIcon } from '@patternfly/react-icons';
 import { Agent } from '@/routes/config/agents';
 import { fetchAgents } from '@/services/agents';
+import { personaStorage } from '@/services/persona-storage';
 import { useChat } from '@/hooks/useChat';
 import {
   fetchChatSessions,
@@ -38,8 +44,92 @@ import {
   ChatSessionSummary,
 } from '@/services/chat-sessions';
 import { useMutation } from '@tanstack/react-query';
-import botAvatar from "../assets/img/bot-avatar.svg";
-import userAvatar from "../assets/img/user-avatar.svg";
+import botAvatar from '../assets/img/bot-avatar.svg';
+import userAvatar from '../assets/img/user-avatar.svg';
+// import { templateService } from '@/services/templates';
+import { DemoQuestions } from '@/components/demo-questions';
+import { personaService } from '@/services/personas';
+
+// Persona labels are now loaded from template YAML files via personaService
+// This ensures no hard-coded persona configurations
+
+// NEW: Persona icons mapping
+// const PERSONA_ICONS: Record<string, React.ComponentType> = {
+//   'compliance_officer': ShieldAltIcon,
+//   'relationship_manager': DollarSignIcon,
+//   'branch_teller': UserIcon,
+//   'fraud_analyst': EyeIcon,
+//   'training_lead': BookIcon,
+//   'it_support': CogIcon,
+// };
+
+// NEW: Persona colors mapping
+// const PERSONA_COLORS: Record<string, 'red' | 'green' | 'blue' | 'orange' | 'purple' | 'grey'> = {
+//   'compliance_officer': 'red',
+//   'relationship_manager': 'green',
+//   'branch_teller': 'blue',
+//   'fraud_analyst': 'orange',
+//   'training_lead': 'purple',
+//   'it_support': 'grey',
+// };
+
+// Sample questions for each banking persona - ORGANIZED AS CARDS
+// const BANKING_SAMPLE_QUESTIONS: Record<string, { title: string; questions: string[] }> = {
+//   'compliance_officer': {
+//     title: 'Compliance & Regulations',
+//     questions: [
+//       "What is the CTR threshold according to the BSA?",
+//       "What steps do we follow for a potential OFAC match?",
+//       "Has the CFPB issued new fair lending guidance this year?",
+//       "What are the key requirements for BSA/AML compliance?"
+//     ]
+//   },
+//   'relationship_manager': {
+//     title: 'Lending & Credit',
+//     questions: [
+//       "What's our minimum FICO score for FHA mortgages?",
+//       "Which documents are needed for small business loans?",
+//       "What's the maximum DTI ratio for conventional loans?",
+//       "How do we calculate loan-to-value ratios?"
+//     ]
+//   },
+//   'branch_teller': {
+//     title: 'Customer Service & Operations',
+//     questions: [
+//       "What is the wire transfer fee for consumer checking accounts?",
+//       "What's the daily ATM withdrawal limit for our Platinum debit card?",
+//       "How many business days for check deposit holds?",
+//       "What are our required timelines for Reg E disputes?"
+//     ]
+//   },
+//   'fraud_analyst': {
+//     title: 'Fraud Detection & AML',
+//     questions: [
+//       "Is frequent cash structuring under $10,000 reportable?",
+//       "How do I escalate a suspected synthetic identity case?",
+//       "What's our procedure for filing a SAR?",
+//       "What are the red flags for money laundering?"
+//     ]
+//   },
+//   'training_lead': {
+//     title: 'Training & Market Intelligence',
+//     questions: [
+//       "What are the major updates in the 2024 FFIEC cybersecurity handbook?",
+//       "List top US banking certifications for AML professionals",
+//       "Summarize the OCC's latest bulletin on overdraft practices",
+//       "What training is required for new compliance staff?"
+//     ]
+//   },
+//   'it_support': {
+//     title: 'IT Support & Systems',
+//     questions: [
+//       "How do I reset my password for the core banking platform?",
+//       "What's the process for requesting access to customer information systems?",
+//       "How do we handle system outages during business hours?",
+//       "What are our cybersecurity protocols for remote access?"
+//     ]
+//   }
+// };
 
 const footnoteProps = {
   label: 'ChatBot uses AI. Check for mistakes.',
@@ -64,6 +154,8 @@ const footnoteProps = {
 };
 
 export function Chat() {
+  const search = useSearch({ from: '/' });
+  const navigate = useNavigate();
   const [availableAgents, setAvailableAgents] = useState<Agent[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
@@ -77,16 +169,8 @@ export function Chat() {
   const scrollToBottomRef = React.useRef<HTMLDivElement>(null);
   const historyRef = React.useRef<HTMLButtonElement>(null);
 
-  // Use our custom hook for chat functionality - only when we have a valid agent
-  const {
-    messages: chatMessages,
-    input,
-    handleInputChange,
-    append,
-    isLoading,
-    loadSession,
-    sessionId,
-  } = useChat(selectedAgent || 'default', {
+  // Add the missing useChat hook with safety check
+  const chatHook = useChat(selectedAgent || 'default', {
     onError: (error: Error) => {
       console.error('Chat error:', error);
       setAnnouncement(`Error: ${error.message}`);
@@ -99,25 +183,41 @@ export function Chat() {
     },
   });
 
-  // Convert our chat messages to PatternFly format
+  // Destructure with safety check
+  const {
+    messages: chatMessages = [],
+    input = '',
+    handleInputChange = () => {},
+    append = () => {},
+    isLoading = false,
+    loadSession = async () => {},
+    sessionId = '',
+  } = chatHook || {};
+
+  // Add this line to define selectedAgentData
+  const selectedAgentData = availableAgents.find((agent) => agent.id === selectedAgent);
+  // const selectedAgentPersona = selectedAgent ? personaStorage.getPersona(selectedAgent) : null;
+  // const selectedPersonaLabel = selectedAgentPersona ? BANKING_PERSONA_LABELS[selectedAgentPersona] || selectedAgentPersona : null;
+  // const currentSampleQuestions = selectedAgentPersona ? BANKING_SAMPLE_QUESTIONS[selectedAgentPersona] : null;
+
   const messages = React.useMemo(
     () =>
-      chatMessages.map(
+      (chatMessages || []).map(
         (msg): MessageProps => ({
           id: msg.id,
           role: msg.role === 'user' ? 'user' : 'bot',
           content: msg.content,
-          name: msg.role === 'user' ? 'You' : 'Assistant',
+          name: msg.role === 'user' ? 'You' : selectedAgentData?.name || 'Assistant',
           timestamp: msg.timestamp.toLocaleString(),
           avatar: msg.role === 'user' ? userAvatar : botAvatar,
           avatarProps: { isBordered: true },
           isLoading:
             msg.role === 'assistant' &&
             isLoading &&
-            msg.id === chatMessages[chatMessages.length - 1]?.id,
+            msg.id === (chatMessages || [])[(chatMessages || []).length - 1]?.id,
         })
       ),
-    [chatMessages, isLoading]
+    [chatMessages, isLoading, selectedAgentData]
   );
 
   const displayMode = ChatbotDisplayMode.embedded;
@@ -142,7 +242,7 @@ export function Chat() {
     void (async () => {
       try {
         await loadSession(selectedItem);
-        setIsDrawerOpen(false); // Close sidebar after selection
+        setIsDrawerOpen(false);
       } catch (error) {
         console.error('Error loading session:', error);
         setAnnouncement('Failed to load chat session');
@@ -155,7 +255,6 @@ export function Chat() {
 
     void (async () => {
       try {
-        // Generate unique session name with timestamp
         const timestamp = new Date()
           .toISOString()
           .slice(0, 19)
@@ -164,13 +263,8 @@ export function Chat() {
         const randomSuffix = Math.random().toString(36).substring(2, 6);
         const uniqueSessionName = `Chat-${timestamp}-${randomSuffix}`;
 
-        // Create a new session for the current agent with unique name
         const newSession = await createChatSession(selectedAgent, uniqueSessionName);
-
-        // Load the new session
         await loadSession(newSession.id);
-
-        // Refresh sessions list to include the new session
         await fetchSessionsData(selectedAgent);
 
         setIsDrawerOpen(false);
@@ -181,7 +275,21 @@ export function Chat() {
     })();
   };
 
+  // const handleSampleQuestionClick = (question: string) => {
+  //   if (selectedAgent && question.trim()) {
+  //     append({
+  //       role: 'user',
+  //       content: question,
+  //     });
+  //   }
+  // };
+
+  // const toggleSampleQuestions = () => {
+  //   // setShowSampleQuestions(!showSampleQuestions); // This line is removed
+  // };
+
   const handleDeleteSession = useCallback((sessionId: string) => {
+    console.log('Delete session clicked:', sessionId); // Add this debug line
     setSessionToDelete(sessionId);
     setIsDeleteModalOpen(true);
   }, []);
@@ -189,15 +297,15 @@ export function Chat() {
   const deleteSessionMutation = useMutation<void, Error, string>({
     mutationFn: (sessionId: string) => {
       if (!selectedAgent) throw new Error('No agent selected');
+      console.log('Deleting session:', sessionId, 'for agent:', selectedAgent);
       return deleteChatSession(sessionId, selectedAgent);
     },
     onSuccess: async () => {
       if (!selectedAgent) return;
-
+      console.log('Session deleted successfully, refreshing sessions...');
       setAnnouncement('Session deleted successfully');
-      // Simply refresh sessions data - fetchSessionsData handles everything:
-      // - If sessions remain: updates UI and loads first session if current was deleted
-      // - If no sessions remain: creates new session, loads it, and updates UI
+
+      // Let fetchSessionsData handle the session switching logic
       await fetchSessionsData(selectedAgent);
     },
     onError: (error) => {
@@ -205,17 +313,16 @@ export function Chat() {
       setAnnouncement(`Failed to delete session: ${error.message}`);
     },
     onSettled: () => {
-      // Always clean up modal state when mutation completes
+      console.log('Delete session mutation settled');
       setIsDeleteModalOpen(false);
       setSessionToDelete(null);
     },
   });
 
   const confirmDeleteSession = () => {
+    console.log('Confirming delete for session:', sessionToDelete); // Add this debug line
     if (!sessionToDelete) return;
-
-    // Trigger the mutation
-    deleteSessionMutation.mutate(sessionToDelete);
+    void deleteSessionMutation.mutate(sessionToDelete);
   };
 
   const cancelDeleteSession = () => {
@@ -223,7 +330,6 @@ export function Chat() {
     setSessionToDelete(null);
   };
 
-  // Create menu items for session actions
   const createSessionMenuItems = useCallback(
     (sessionId: string) => [
       <DropdownList key="session-actions">
@@ -244,7 +350,6 @@ export function Chat() {
       session.title.toLowerCase().includes(targetValue.toLowerCase())
     );
 
-    // Convert to PatternFly conversation format
     const conversations = filteredConversations.map((session) => ({
       id: session.id,
       text: session.title,
@@ -253,7 +358,6 @@ export function Chat() {
       menuItems: createSessionMenuItems(session.id),
     }));
 
-    // append message if no items are found
     if (conversations.length === 0) {
       conversations.push({
         id: '13',
@@ -266,15 +370,14 @@ export function Chat() {
     return conversations;
   };
 
+  // Revert the fetchSessionsData to the original working version:
+
   const fetchSessionsData = useCallback(
     async (agentId?: string) => {
       try {
-        console.log('fetchSessionsData called with agentId:', agentId);
         const sessions = await fetchChatSessions(agentId);
-        console.log('Fetched sessions:', sessions);
         setChatSessions(sessions);
 
-        // Convert to PatternFly conversation format
         const conversations = sessions.map((session) => ({
           id: session.id,
           text: session.title,
@@ -284,24 +387,16 @@ export function Chat() {
         }));
 
         setConversations(conversations);
-        console.log('Set conversations:', conversations);
 
-        // Auto-select first session if no session is currently selected and sessions exist
-        // OR if the current sessionId doesn't exist in the fetched sessions (i.e., from different agent)
-        console.log('Current sessionId:', sessionId, 'sessions.length:', sessions.length);
         const currentSessionExists =
           sessionId && sessions.some((session) => session.id === sessionId);
-        console.log('Current session exists in fetched sessions:', currentSessionExists);
 
         if ((!sessionId || !currentSessionExists) && sessions.length > 0) {
-          const firstSession = sessions[0]; // Sessions should be ordered by updated_at desc (most recent first)
-          console.log('Auto-selecting first session:', firstSession.id);
+          const firstSession = sessions[0];
           await loadSession(firstSession.id);
-        } else if (sessions.length === 0 && agentId) {
-          // Create a new session if agent has no sessions
+        } else if (sessions.length === 0 && agentId && !sessionId) {
+          // Only create a new session if there's no current session (first time loading)
           try {
-            console.log('No sessions found, creating new session for agent:', agentId);
-            // Generate unique session name with timestamp
             const timestamp = new Date()
               .toISOString()
               .slice(0, 19)
@@ -313,7 +408,6 @@ export function Chat() {
             const newSession = await createChatSession(agentId, uniqueSessionName);
             await loadSession(newSession.id);
 
-            // Update UI state with the new session
             const newSessionSummary: ChatSessionSummary = {
               id: newSession.id,
               title: newSession.title,
@@ -343,21 +437,34 @@ export function Chat() {
         );
       }
     },
-    [sessionId, loadSession, setAnnouncement, createSessionMenuItems]
+    [sessionId, loadSession, createSessionMenuItems]
   );
 
-  // Fetch available agents on mount
+  // Revert the useEffect to exclude fetchSessionsData:
+  useEffect(() => {
+    if (selectedAgent) {
+      void fetchSessionsData(selectedAgent);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAgent]); // ONLY selectedAgent dependency - fetchSessionsData intentionally excluded
+
   useEffect(() => {
     const fetchAgentsData = async () => {
       try {
-        console.log('Fetching agents on app load...');
         const agents = await fetchAgents();
         setAvailableAgents(agents);
-        if (agents.length > 0) {
+
+        // Check if agentId is provided in URL search params
+        console.log('Search params:', search);
+        console.log('AgentId from URL:', search.agentId);
+
+        if (search.agentId && agents.some((agent) => agent.id === search.agentId)) {
+          console.log('Setting selected agent from URL:', search.agentId);
+          setSelectedAgent(search.agentId);
+        } else if (agents.length > 0) {
           const firstAgent = agents[0].id;
-          console.log('Setting first agent:', firstAgent);
+          console.log('Setting first agent as default:', firstAgent);
           setSelectedAgent(firstAgent);
-          // Don't fetch sessions here - let the selectedAgent useEffect handle it
         }
       } catch (err) {
         console.error('Error fetching agents:', err);
@@ -365,36 +472,30 @@ export function Chat() {
       }
     };
 
-    void fetchAgentsData();
-  }, []);
+    // Call the async function and handle any errors
+    fetchAgentsData().catch((error) => {
+      console.error('Error in fetchAgentsData:', error);
+    });
+  }, [search]); // Add search as dependency
 
-  // Handle selectedAgent changes - fetch sessions for the new agent
-  useEffect(() => {
-    if (selectedAgent) {
-      console.log('selectedAgent changed to:', selectedAgent, 'fetching sessions...');
-      void fetchSessionsData(selectedAgent);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAgent]); // fetchSessionsData intentionally excluded to prevent infinite loop
-
-  // Handle message sending
   const handleSendMessage = (message: string | number) => {
-    console.log('handleSendMessage called with:', message, 'selectedAgent:', selectedAgent);
-    console.log('Current session ID:', sessionId);
     if (typeof message === 'string' && message.trim() && selectedAgent) {
-      console.log('Sending message via append:', message, 'using session:', sessionId);
-      // Add the message to the chat
-      append({
+      void append({
         role: 'user',
         content: message.toString(),
       });
-    } else {
-      console.log('Message not sent - conditions not met:', {
-        messageType: typeof message,
-        messageLength: typeof message === 'string' ? message.trim().length : 0,
-        selectedAgent: selectedAgent,
-      });
+
+      // Add a small delay to ensure the message is added to the DOM
+      setTimeout(() => {
+        if (scrollToBottomRef.current) {
+          scrollToBottomRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
     }
+  };
+
+  const handleBackToAgents = () => {
+    void navigate({ to: '/config/agents', search: { tab: 'my-agents' } });
   };
 
   return (
@@ -412,7 +513,6 @@ export function Chat() {
         onNewChat={onNewChat}
         handleTextInputChange={(value: string) => {
           if (value === '') {
-            // Convert sessions to conversations format
             const conversations = chatSessions.map((session) => ({
               id: session.id,
               text: session.title,
@@ -434,29 +534,83 @@ export function Chat() {
                   aria-expanded={isDrawerOpen}
                   onMenuToggle={() => setIsDrawerOpen(!isDrawerOpen)}
                 />
-                <ChatbotHeaderTitle>Chat</ChatbotHeaderTitle>
+                <ChatbotHeaderTitle>
+                  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+                    <Breadcrumb style={{ marginBottom: '0.5rem' }}>
+                      <BreadcrumbItem>
+                        <Button
+                          variant="link"
+                          icon={<AngleLeftIcon />}
+                          onClick={handleBackToAgents}
+                          style={{
+                            color: 'var(--text-primary)',
+                            padding: '0',
+                            fontSize: '0.9rem',
+                          }}
+                        >
+                          Back to Agents
+                        </Button>
+                      </BreadcrumbItem>
+                    </Breadcrumb>
+                    <span>Chat with {selectedAgentData?.name || 'Agent'}</span>
+                  </Flex>
+                </ChatbotHeaderTitle>
               </ChatbotHeaderMain>
               <ChatbotHeaderActions>
                 <ChatbotHeaderSelectorDropdown
-                  value={
-                    availableAgents.find((agent) => agent.id === selectedAgent)?.name ||
-                    'Select Agent'
-                  }
+                  value={(() => {
+                    const selectedAgentData = availableAgents.find(
+                      (agent) => agent.id === selectedAgent
+                    );
+                    if (!selectedAgentData) return 'Select Agent';
+
+                    const persona = personaStorage.getPersona(selectedAgentData.id);
+                    const personaLabel = persona
+                      ? personaService.getPersona(persona)?.label || persona
+                      : '';
+
+                    return personaLabel
+                      ? `${selectedAgentData.name} (${personaLabel})`
+                      : selectedAgentData.name;
+                  })()}
                   onSelect={onSelectAgent}
                   tooltipContent="Select Agent"
                 >
                   <DropdownList>
-                    {availableAgents.map((agent) => (
-                      <DropdownItem value={agent.id} key={agent.id}>
-                        {agent.name}
-                      </DropdownItem>
-                    ))}
+                    {availableAgents.map((agent) => {
+                      const persona = personaStorage.getPersona(agent.id);
+                      const personaLabel = persona
+                        ? personaService.getPersona(persona)?.label || persona
+                        : '';
+                      const displayText = personaLabel
+                        ? `${agent.name} (${personaLabel})`
+                        : agent.name;
+
+                      return (
+                        <DropdownItem value={agent.id} key={agent.id}>
+                          {displayText}
+                        </DropdownItem>
+                      );
+                    })}
                   </DropdownList>
                 </ChatbotHeaderSelectorDropdown>
               </ChatbotHeaderActions>
             </ChatbotHeader>
             <ChatbotContent>
               <MessageBox announcement={announcement}>
+                {selectedAgent && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <DemoQuestions
+                      agentId={selectedAgent}
+                      agentName={selectedAgentData?.name}
+                      onQuestionClick={(question) => {
+                        handleSendMessage(question);
+                      }}
+                      maxQuestions={4}
+                    />
+                  </div>
+                )}
+
                 {messages.map((message, index) => {
                   if (index === messages.length - 1) {
                     return (

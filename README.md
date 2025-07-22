@@ -36,8 +36,9 @@ For detailed architecture information, see:
 
 - **🤖 Virtual Agent Management**: Create, configure, and manage AI agents with different personalities and capabilities
 - **📚 Knowledge Base Integration**: Upload documents and create searchable knowledge bases for RAG (Retrieval-Augmented Generation)
+- **💾 Database Access**: Live database integration through MCP (Model Context Protocol) servers for real-time data access
 - **💬 Real-time Chat**: Stream-based chat interface with Server-Sent Events for responsive conversations
-- **🔧 Tool Integration**: Support for built-in tools (RAG, web search) and external MCP (Model Context Protocol) servers
+- **🔧 Tool Integration**: Support for built-in tools (RAG, web search) and external MCP servers for comprehensive data access
 - **🛡️ Safety & Guardrails**: Configurable input/output shields and safety measures
 - **📊 Session Management**: Persistent chat sessions with history and metadata
 - **🏗️ Scalable Architecture**: Production-ready deployment with Kubernetes and containerization
@@ -55,8 +56,12 @@ For detailed architecture information, see:
 
 - **[Installation Guide](INSTALLING.md)** - Install AI Virtual Agent
 - **[Contributing Guide](CONTRIBUTING.md)** - Setup, development, and contribution guidelines
+- **[Adding New Templates](docs/ADDING_NEW_TEMPLATES.md)** - Complete guide for creating new agent templates
+- **[Template Quick Reference](docs/TEMPLATE_QUICK_REFERENCE.md)** - Quick reference for template creation
 - **[Virtual Agents Architecture](docs/virtual-agents-architecture.md)** - How AI agents work in the platform
 - **[Knowledge Base Architecture](docs/knowledge-base-architecture.md)** - Document ingestion and RAG system
+- **[MCP Server Testing Guide](docs/MCP_SERVER_TESTING_GUIDE.md)** - Test Model Context Protocol server integration
+- **[FSI Demo Execution Checklist](docs/FSI_DEMO_EXECUTION_CHECKLIST.md)** - Complete demo guide with MCP integration
 - **[Backend README](backend/README.md)** - Backend API documentation and features
 
 ## Community & Support
