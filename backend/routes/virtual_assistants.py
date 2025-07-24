@@ -8,11 +8,13 @@ different models, tools, knowledge bases, and safety shields.
 
 from typing import List
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Request, status, Depends
 from llama_stack_client.lib.agents.agent import AgentUtils
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from .. import schemas
+from .. import schemas, models
 from ..api.llamastack import get_client_from_request
+from ..database import get_db
 from ..utils.logging_config import get_logger
 from ..virtual_agents.agent_model import VirtualAgent
 
@@ -42,13 +44,56 @@ def get_strategy(sampling_strategy, temperature, top_p, top_k):
     return {"type": "greedy"}
 
 
+def get_standardized_instructions(user_prompt: str, agent_type: str) -> str:
+    """
+    Creates standardized instructions with consistent response format based on agent type.
+
+    Args:
+        user_prompt: The user's custom prompt/instructions
+        agent_type: The type of agent ("ReAct" or "Regular")
+
+    Returns:
+        Standardized instructions with appropriate response format requirements
+    """
+    if agent_type == "ReAct":
+        # ReAct agents: Always respond with structured JSON containing thought process and answer
+        format_instruction = """
+
+CRITICAL JSON FORMATTING RULES:
+- You MUST respond with VALID JSON only - no other text before or after  
+- For newlines in JSON strings, use: \n (single backslash followed by n)
+- Use proper double quotes for all JSON strings
+- Make sure JSON is complete with proper opening and closing braces
+
+REQUIRED JSON STRUCTURE:
+{
+  "thought": "Your step-by-step thinking process here",
+  "answer": "Your final answer here"
+}
+
+Example of CORRECT formatting:
+{
+  "thought": "First, I will analyze the problem.\nThen I will solve it step by step.\nFinally, I will provide the answer.",
+  "answer": "The final result is 42."
+}
+
+Think through problems step-by-step in the 'thought' field, then provide your final response in the 'answer' field."""
+    else:
+        # Regular agents: Respond naturally but consistently
+        format_instruction = """
+
+Respond naturally and conversationally. Provide clear, helpful answers."""
+    
+    return user_prompt + format_instruction
+
+
 @router.post(
     "/",
     response_model=schemas.VirtualAssistantRead,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_virtual_assistant(
-    va: schemas.VirtualAssistantCreate, request: Request
+    va: schemas.VirtualAssistantCreate, request: Request, db: AsyncSession = Depends(get_db)
 ):
     """
     Create a new virtual assistant agent in LlamaStack.
@@ -89,9 +134,12 @@ async def create_virtual_assistant(
             else:
                 tools.append(tool_info.toolgroup_id)
 
+        # Create standardized instructions based on agent type
+        standardized_instructions = get_standardized_instructions(va.prompt or "", va.agent_type or "ReAct")
+        
         agent_config = AgentUtils.get_agent_config(
             model=va.model_name,
-            instructions=va.prompt,
+            instructions=standardized_instructions,
             tools=tools,
             sampling_params=sampling_params,
             max_infer_iters=va.max_infer_iters,
@@ -104,9 +152,24 @@ async def create_virtual_assistant(
             agent_config=agent_config,
         )
 
+        # Store agent type in database
+        try:
+            converted_agent_type = models.AgentTypeEnum(va.agent_type or "ReAct")
+            db_agent_type = models.AgentType(
+                agent_id=agentic_system_create_response.agent_id,
+                agent_type=converted_agent_type
+            )
+            db.add(db_agent_type)
+            await db.commit()
+        except Exception as db_error:
+            logger.error(f"Error storing agent_type: {str(db_error)}")
+            await db.rollback()
+            # Continue anyway, don't fail agent creation
+
         return schemas.VirtualAssistantRead(
             id=agentic_system_create_response.agent_id,
             name=va.name,
+            agent_type=va.agent_type,
             input_shields=va.input_shields,
             output_shields=va.output_shields,
             prompt=va.prompt,
@@ -116,6 +179,7 @@ async def create_virtual_assistant(
         )
 
     except Exception as e:
+        await db.rollback()
         logger.error(f"ERROR: create_virtual_assistant: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"An unexpected error occurred: {str(e)}"

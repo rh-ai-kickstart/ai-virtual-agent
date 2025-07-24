@@ -231,9 +231,20 @@ class Chat:
     def _process_inference_step_json(
         self, current_step_content, tool_results, final_answer
     ):
-        """JSON-emitting version for AI SDK compatibility"""
+        """JSON-emitting version for unified ReAct format"""
         try:
-            react_output_data = json.loads(current_step_content)
+            # Parse the JSON content with minimal fixes for LLM double-escaping
+            cleaned_content = current_step_content.strip()
+            
+            # Fix specific LLM double-escaping issue: \\n -> \n
+            if '\\\\n' in cleaned_content:
+                cleaned_content = cleaned_content.replace('\\\\n', '\\n')
+                
+            # Fix incomplete JSON (missing closing brace)
+            if not cleaned_content.endswith('}'):
+                cleaned_content += '}'
+                
+            react_output_data = json.loads(cleaned_content)
             thought = react_output_data.get("thought")
             action = react_output_data.get("action")
             answer = react_output_data.get("answer")
@@ -241,34 +252,23 @@ class Chat:
             if answer and answer != "null" and answer is not None:
                 final_answer = answer
 
-            # Emit thought as reasoning
-            if thought:
-                yield json.dumps({"type": "reasoning", "content": thought})
+            # Emit unified ReAct response
+            unified_response = {
+                "type": "react_unified",
+                "thought": thought if thought else None,
+                "action": action if isinstance(action, dict) else None,
+                "answer": answer if answer and answer != "null" else None,
+                "tool_results": tool_results if tool_results else []
+            }
+            yield json.dumps(unified_response)
 
-            # Emit action as tool
-            if action and isinstance(action, dict):
-                tool_name = action.get("tool_name")
-                tool_params = action.get("tool_params")
-                if tool_name:
-                    yield json.dumps(
-                        {
-                            "type": "tool",
-                            "content": f'Using "{tool_name}" tool',
-                            "tool": {"name": tool_name, "params": tool_params},
-                        }
-                    )
-
-            # Emit final answer
-            if answer and answer != "null" and answer is not None:
-                yield json.dumps({"type": "text", "content": f"Final Answer: {answer}"})
-
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
             yield json.dumps(
                 {
                     "type": "error",
                     "content": (
-                        f"Failed to parse ReAct step content: "
-                        f"{current_step_content}"
+                        f"JSON Decode Error: {str(e)} | "
+                        f"Content: {repr(current_step_content[:200])}..."
                     ),
                 }
             )
@@ -503,7 +503,7 @@ class Chat:
                     }
                 )
 
-    def stream(self, agent_id: str, session_id: str, prompt: str):
+    def stream(self, agent_id: str, session_id: str, prompt: str, agent_type_str: str = "ReAct"):
         """
         Stream chat response using LlamaStack as the single source of truth.
 
@@ -511,6 +511,7 @@ class Chat:
             agent_id: The ID of the agent from LlamaStack
             session_id: The ID of the session from LlamaStack
             prompt: The user's message
+            agent_type_str: The agent type ("ReAct" or "Regular")
         """
         try:
             # Create agent instance using existing agent_id
@@ -537,8 +538,8 @@ class Chat:
 
             turn_response = asyncio.run(async_iterator_to_iterator())
 
-            # Determine agent type (defaulting to REGULAR for now)
-            agent_type = AgentType.REGULAR
+            # Use passed agent type
+            agent_type = AgentType.REACT if agent_type_str == "ReAct" else AgentType.REGULAR
 
             # Stream the response
             yield from self._response_generator(turn_response, session_id, agent_type)
