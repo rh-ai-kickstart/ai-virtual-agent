@@ -29,6 +29,22 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 async def get_user_from_headers(headers: dict[str, str], db: AsyncSession):
+    """
+    Get or create user from OAuth proxy headers.
+
+    SECURITY WARNING: This function trusts that OAuth proxy headers are validated
+    and cannot be forged. This assumes:
+    1. OAuth proxy is properly configured to validate authentication
+    2. Headers like X-Forwarded-User are stripped/reset by OAuth proxy
+    3. Direct access to this endpoint bypassing OAuth proxy is blocked
+
+    Suggested security improvements:
+    1. Validate OAuth proxy source (e.g., check X-Forwarded-Proto, X-Real-IP)
+    2. Use OAuth proxy shared secret or JWT validation
+    3. Implement IP allowlisting for OAuth proxy
+    4. Add header signature validation
+    5. Use mutual TLS between OAuth proxy and backend
+    """
     username = headers.get("X-Forwarded-User")
     email = headers.get("X-Forwarded-Email")
     if not username and not email:
@@ -38,12 +54,33 @@ async def get_user_from_headers(headers: dict[str, str], db: AsyncSession):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
             )
+
+    # Try to find existing user
     result = await db.execute(
         select(models.User).where(
             (models.User.username == username) | (models.User.email == email)
         )
     )
-    return result.scalar_one_or_none()
+    user = result.scalar_one_or_none()
+
+    # If user doesn't exist, create them (trusting OAuth proxy validation)
+    if not user:
+        log.info(
+            f"Adding user from OAuth proxy headers: username={username}, email={email}"
+        )
+        user = models.User(
+            username=username
+            or email,  # Use email as username if username not provided
+            email=email or username,  # Use username as email if email not provided
+            role="user",  # Default role - admin can change later
+            agent_ids=[],  # No agents initially - admin must assign
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+        log.info(f"Successfully created user {user.id} with username '{user.username}'")
+
+    return user
 
 
 # profile endpoint must be declared first in order to function within
@@ -54,24 +91,26 @@ async def read_profile(request: Request, db: AsyncSession = Depends(get_db)):
     """
     Retrieve an authorized user's profile.
 
-    This endpoint fetches an authorized user's profile information.
+    This endpoint fetches an authorized user's profile information from OAuth proxy
+    headers. If the user doesn't exist in the database, they are automatically
+    created with default settings (no agents assigned).
 
     Args:
-        request: HTTP request details
+        request: HTTP request details containing OAuth proxy headers
         db: Database session dependency
 
     Returns:
-        schemas.UserRead: The authorized user's profile
+        schemas.UserRead: The authorized user's profile (existing or newly created)
 
     Raises:
-        HTTPException: 401 if the user is not authorized
-        HTTPException: 403 if the user is not found
+        HTTPException: 401 if OAuth headers are missing/invalid
+
+    Note:
+        Users created via this endpoint will have no agents initially and will
+        need an administrator to assign agents before they can use the chat
+        functionality.
     """
     user = await get_user_from_headers(request.headers, db)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="User not found"
-        )
     return user
 
 
