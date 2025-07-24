@@ -8,6 +8,7 @@ import {
   FormHelperText,
   FormSelect,
   FormSelectOption,
+  Switch,
   TextArea,
   TextInput,
   Accordion,
@@ -64,6 +65,7 @@ interface AgentFormProps {
 // Form interface for internal form state (user-friendly)
 interface AgentFormData {
   name: string;
+  agent_type: string;
   model_name: string;
   prompt: string;
   knowledge_base_ids: string[];
@@ -84,6 +86,7 @@ const convertAgentToFormData = (agent: Agent | undefined): AgentFormData => {
   if (!agent) {
     return {
       name: '',
+      agent_type: 'ReAct', // Default to ReAct
       model_name: '',
       prompt: '',
       knowledge_base_ids: [],
@@ -105,6 +108,7 @@ const convertAgentToFormData = (agent: Agent | undefined): AgentFormData => {
 
   return {
     name: agent.name,
+    agent_type: agent.agent_type || 'ReAct', // Default to ReAct if not specified
     model_name: agent.model_name,
     prompt: agent.prompt,
     knowledge_base_ids: agent.knowledge_base_ids,
@@ -139,6 +143,7 @@ const convertFormDataToAgent = (formData: AgentFormData, tools: ToolGroup[]): Ne
 
   return {
     name: formData.name,
+    agent_type: formData.agent_type,
     model_name: formData.model_name,
     prompt: formData.prompt,
     knowledge_base_ids,
@@ -344,6 +349,20 @@ export function AgentForm({
                 {field.state.meta.errors.join(', ')}
               </FormHelperText>
             )}
+          </FormGroup>
+        )}
+      </form.Field>
+      <form.Field name="agent_type">
+        {(field) => (
+          <FormGroup label="Agent Type" fieldId="agent-type">
+            <Switch
+              id="agent-type"
+              label="ReAct Agent"
+              labelOff="Regular Agent"
+              isChecked={field.state.value === 'ReAct'}
+              onChange={(_event, checked) => field.handleChange(checked ? 'ReAct' : 'Regular')}
+              ouiaId="BasicSwitch"
+            />
           </FormGroup>
         )}
       </form.Field>

@@ -186,12 +186,13 @@ async def create_virtual_assistant(
         )
 
 
-def to_va_response(agent: VirtualAgent):
+def to_va_response(agent: VirtualAgent, agent_type: str = "ReAct"):
     """
     Convert a LlamaStack VirtualAgent to API response format.
 
     Args:
         agent: VirtualAgent object from LlamaStack
+        agent_type: Agent type from database lookup
 
     Returns:
         VirtualAssistantRead schema with formatted data
@@ -216,10 +217,10 @@ def to_va_response(agent: VirtualAgent):
     output_shields = agent.agent_config.get("output_shields", [])
     prompt = agent.agent_config.get("instructions", "")
     model_name = agent.agent_config.get("model", "")
-
     return schemas.VirtualAssistantRead(
         id=id,
         name=name,
+        agent_type=agent_type,
         input_shields=input_shields,
         output_shields=output_shields,
         prompt=prompt,
@@ -230,7 +231,7 @@ def to_va_response(agent: VirtualAgent):
 
 
 @router.get("/", response_model=List[schemas.VirtualAssistantRead])
-async def get_virtual_assistants(request: Request):
+async def get_virtual_assistants(request: Request, db: AsyncSession = Depends(get_db)):
     """
     Retrieve all virtual assistants from LlamaStack.
 
@@ -242,12 +243,22 @@ async def get_virtual_assistants(request: Request):
     agents = await client.agents.list()
     response_list = []
     for agent in agents:
-        response_list.append(to_va_response(agent))
+        # Get agent type from database
+        agent_type = "ReAct"  # Default
+        try:
+            from sqlalchemy.future import select
+            result = await db.execute(select(models.AgentType).where(models.AgentType.agent_id == agent.agent_id))
+            agent_type_record = result.scalar_one_or_none()
+            if agent_type_record:
+                agent_type = agent_type_record.agent_type.value
+        except Exception:
+            pass  # Use default
+        response_list.append(to_va_response(agent, agent_type))
     return response_list
 
 
 @router.get("/{va_id}", response_model=schemas.VirtualAssistantRead)
-async def read_virtual_assistant(va_id: str, request: Request):
+async def read_virtual_assistant(va_id: str, request: Request, db: AsyncSession = Depends(get_db)):
     """
     Retrieve a specific virtual assistant by ID.
 
@@ -262,7 +273,19 @@ async def read_virtual_assistant(va_id: str, request: Request):
     """
     client = get_client_from_request(request)
     agent = await client.agents.retrieve(agent_id=va_id)
-    return to_va_response(agent)
+    
+    # Get agent type from database
+    agent_type = "ReAct"  # Default
+    try:
+        from sqlalchemy.future import select
+        result = await db.execute(select(models.AgentType).where(models.AgentType.agent_id == va_id))
+        agent_type_record = result.scalar_one_or_none()
+        if agent_type_record:
+            agent_type = agent_type_record.agent_type.value
+    except Exception:
+        pass  # Use default
+    
+    return to_va_response(agent, agent_type)
 
 
 # @router.put("/{va_id}", response_model=schemas.VirtualAssistantRead)
