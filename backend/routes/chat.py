@@ -233,18 +233,7 @@ class Chat:
     ):
         """JSON-emitting version for unified ReAct format"""
         try:
-            # Parse the JSON content with minimal fixes for LLM double-escaping
-            cleaned_content = current_step_content.strip()
-            
-            # Fix specific LLM double-escaping issue: \\n -> \n
-            if '\\\\n' in cleaned_content:
-                cleaned_content = cleaned_content.replace('\\\\n', '\\n')
-                
-            # Fix incomplete JSON (missing closing brace)
-            if not cleaned_content.endswith('}'):
-                cleaned_content += '}'
-                
-            react_output_data = json.loads(cleaned_content)
+            react_output_data = json.loads(current_step_content.strip())
             thought = react_output_data.get("thought")
             action = react_output_data.get("action")
             answer = react_output_data.get("answer")
@@ -263,15 +252,27 @@ class Chat:
             yield json.dumps(unified_response)
 
         except json.JSONDecodeError as e:
-            yield json.dumps(
-                {
-                    "type": "error",
-                    "content": (
-                        f"JSON Decode Error: {str(e)} | "
-                        f"Content: {repr(current_step_content[:200])}..."
-                    ),
+            # Simple fallback: try minimal cleaning for incomplete JSON
+            try:
+                cleaned_content = current_step_content.strip()
+                if not cleaned_content.endswith('}'):
+                    cleaned_content += '}'
+                    
+                react_output_data = json.loads(cleaned_content)
+                unified_response = {
+                    "type": "react_unified",
+                    "thought": react_output_data.get("thought"),
+                    "action": react_output_data.get("action") if isinstance(react_output_data.get("action"), dict) else None,
+                    "answer": react_output_data.get("answer"),
+                    "tool_results": tool_results if tool_results else []
                 }
-            )
+                yield json.dumps(unified_response)
+            except:
+                # If cleaning fails, use simple error handling
+                yield json.dumps({
+                    "type": "error",
+                    "content": f"Failed to parse JSON response: {str(e)}"
+                })
         except Exception as e:
             yield json.dumps(
                 {

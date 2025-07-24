@@ -59,25 +59,8 @@ def get_standardized_instructions(user_prompt: str, agent_type: str) -> str:
         # ReAct agents: Always respond with structured JSON containing thought process and answer
         format_instruction = """
 
-CRITICAL JSON FORMATTING RULES:
-- You MUST respond with VALID JSON only - no other text before or after  
-- For newlines in JSON strings, use: \n (single backslash followed by n)
-- Use proper double quotes for all JSON strings
-- Make sure JSON is complete with proper opening and closing braces
-
-REQUIRED JSON STRUCTURE:
-{
-  "thought": "Your step-by-step thinking process here",
-  "answer": "Your final answer here"
-}
-
-Example of CORRECT formatting:
-{
-  "thought": "First, I will analyze the problem.\nThen I will solve it step by step.\nFinally, I will provide the answer.",
-  "answer": "The final result is 42."
-}
-
-Think through problems step-by-step in the 'thought' field, then provide your final response in the 'answer' field."""
+Always respond with complete JSON only:
+{"thought": "your thinking", "answer": "your answer"}"""
     else:
         # Regular agents: Respond naturally but consistently
         format_instruction = """
