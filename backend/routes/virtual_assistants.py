@@ -8,11 +8,13 @@ different models, tools, knowledge bases, and safety shields.
 
 from typing import List
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Request, status, Depends
 from llama_stack_client.lib.agents.agent import AgentUtils
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from .. import schemas
+from .. import schemas, models
 from ..api.llamastack import get_client_from_request
+from ..database import get_db
 from ..utils.logging_config import get_logger
 from ..virtual_agents.agent_model import VirtualAgent
 
@@ -42,13 +44,45 @@ def get_strategy(sampling_strategy, temperature, top_p, top_k):
     return {"type": "greedy"}
 
 
+def get_standardized_instructions(user_prompt: str, agent_type: str) -> str:
+    """
+    Creates standardized instructions with consistent response format based on agent type.
+
+    Args:
+        user_prompt: The user's custom prompt/instructions
+        agent_type: The type of agent ("ReAct" or "Regular")
+
+    Returns:
+        Standardized instructions with appropriate response format requirements
+    """
+    if agent_type == "ReAct":
+        # ReAct agents: Always respond with structured JSON containing thought process and answer
+        format_instruction = """
+
+CRITICAL: Always respond with complete JSON only - no other text before or after.
+Use this exact format with simple string values only:
+{"thought": "your step-by-step thinking process", "answer": "your final answer as a simple text string"}
+
+IMPORTANT: 
+- The "answer" field must be a simple text string, never a nested object
+- Do not use nested JSON objects or arrays in the answer field
+- Keep it flat and simple"""
+    else:
+        # Regular agents: Respond naturally but consistently
+        format_instruction = """
+
+Respond naturally and conversationally. Provide clear, helpful answers."""
+    
+    return user_prompt + format_instruction
+
+
 @router.post(
     "/",
     response_model=schemas.VirtualAssistantRead,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_virtual_assistant(
-    va: schemas.VirtualAssistantCreate, request: Request
+    va: schemas.VirtualAssistantCreate, request: Request, db: AsyncSession = Depends(get_db)
 ):
     """
     Create a new virtual assistant agent in LlamaStack.
@@ -89,9 +123,12 @@ async def create_virtual_assistant(
             else:
                 tools.append(tool_info.toolgroup_id)
 
+        # Create standardized instructions based on agent type
+        standardized_instructions = get_standardized_instructions(va.prompt or "", va.agent_type or "ReAct")
+        
         agent_config = AgentUtils.get_agent_config(
             model=va.model_name,
-            instructions=va.prompt,
+            instructions=standardized_instructions,
             tools=tools,
             sampling_params=sampling_params,
             max_infer_iters=va.max_infer_iters,
@@ -104,9 +141,24 @@ async def create_virtual_assistant(
             agent_config=agent_config,
         )
 
+        # Store agent type in database
+        try:
+            converted_agent_type = models.AgentTypeEnum(va.agent_type or "ReAct")
+            db_agent_type = models.AgentType(
+                agent_id=agentic_system_create_response.agent_id,
+                agent_type=converted_agent_type
+            )
+            db.add(db_agent_type)
+            await db.commit()
+        except Exception as db_error:
+            logger.error(f"Error storing agent_type: {str(db_error)}")
+            await db.rollback()
+            # Continue anyway, don't fail agent creation
+
         return schemas.VirtualAssistantRead(
             id=agentic_system_create_response.agent_id,
             name=va.name,
+            agent_type=va.agent_type,
             input_shields=va.input_shields,
             output_shields=va.output_shields,
             prompt=va.prompt,
@@ -116,18 +168,20 @@ async def create_virtual_assistant(
         )
 
     except Exception as e:
+        await db.rollback()
         logger.error(f"ERROR: create_virtual_assistant: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"An unexpected error occurred: {str(e)}"
         )
 
 
-def to_va_response(agent: VirtualAgent):
+def to_va_response(agent: VirtualAgent, agent_type: str = "ReAct"):
     """
     Convert a LlamaStack VirtualAgent to API response format.
 
     Args:
         agent: VirtualAgent object from LlamaStack
+        agent_type: Agent type from database lookup
 
     Returns:
         VirtualAssistantRead schema with formatted data
@@ -152,10 +206,10 @@ def to_va_response(agent: VirtualAgent):
     output_shields = agent.agent_config.get("output_shields", [])
     prompt = agent.agent_config.get("instructions", "")
     model_name = agent.agent_config.get("model", "")
-
     return schemas.VirtualAssistantRead(
         id=id,
         name=name,
+        agent_type=agent_type,
         input_shields=input_shields,
         output_shields=output_shields,
         prompt=prompt,
@@ -166,7 +220,7 @@ def to_va_response(agent: VirtualAgent):
 
 
 @router.get("/", response_model=List[schemas.VirtualAssistantRead])
-async def get_virtual_assistants(request: Request):
+async def get_virtual_assistants(request: Request, db: AsyncSession = Depends(get_db)):
     """
     Retrieve all virtual assistants from LlamaStack.
 
@@ -178,12 +232,22 @@ async def get_virtual_assistants(request: Request):
     agents = await client.agents.list()
     response_list = []
     for agent in agents:
-        response_list.append(to_va_response(agent))
+        # Get agent type from database
+        agent_type = "ReAct"  # Default
+        try:
+            from sqlalchemy.future import select
+            result = await db.execute(select(models.AgentType).where(models.AgentType.agent_id == agent.agent_id))
+            agent_type_record = result.scalar_one_or_none()
+            if agent_type_record:
+                agent_type = agent_type_record.agent_type.value
+        except Exception:
+            pass  # Use default
+        response_list.append(to_va_response(agent, agent_type))
     return response_list
 
 
 @router.get("/{va_id}", response_model=schemas.VirtualAssistantRead)
-async def read_virtual_assistant(va_id: str, request: Request):
+async def read_virtual_assistant(va_id: str, request: Request, db: AsyncSession = Depends(get_db)):
     """
     Retrieve a specific virtual assistant by ID.
 
@@ -198,7 +262,19 @@ async def read_virtual_assistant(va_id: str, request: Request):
     """
     client = get_client_from_request(request)
     agent = await client.agents.retrieve(agent_id=va_id)
-    return to_va_response(agent)
+    
+    # Get agent type from database
+    agent_type = "ReAct"  # Default
+    try:
+        from sqlalchemy.future import select
+        result = await db.execute(select(models.AgentType).where(models.AgentType.agent_id == va_id))
+        agent_type_record = result.scalar_one_or_none()
+        if agent_type_record:
+            agent_type = agent_type_record.agent_type.value
+    except Exception:
+        pass  # Use default
+    
+    return to_va_response(agent, agent_type)
 
 
 # @router.put("/{va_id}", response_model=schemas.VirtualAssistantRead)
