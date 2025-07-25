@@ -16,8 +16,6 @@ import {
   AccordionToggle,
   AccordionContent,
   Tooltip,
-  Slider,
-  SliderOnChangeEvent,
 } from '@patternfly/react-core';
 import { useForm } from '@tanstack/react-form';
 import { Fragment, useMemo, useState } from 'react';
@@ -191,7 +189,7 @@ export function AgentForm({
   };
 
   const handleSliderChange = (
-    event: SliderOnChangeEvent,
+    event: any,
     field: any,
     sliderValue: number,
     inputValue: number | undefined,
@@ -357,8 +355,7 @@ export function AgentForm({
           <FormGroup label="Agent Type" fieldId="agent-type">
             <Switch
               id="agent-type"
-              label="ReAct Agent"
-              labelOff="Regular Agent"
+              label="ReAct Agent (ON) / Regular Agent (OFF)"
               isChecked={field.state.value === 'ReAct'}
               onChange={(_event, checked) => field.handleChange(checked ? 'ReAct' : 'Regular')}
               ouiaId="BasicSwitch"

@@ -59,8 +59,14 @@ def get_standardized_instructions(user_prompt: str, agent_type: str) -> str:
         # ReAct agents: Always respond with structured JSON containing thought process and answer
         format_instruction = """
 
-Always respond with complete JSON only:
-{"thought": "your thinking", "answer": "your answer"}"""
+CRITICAL: Always respond with complete JSON only - no other text before or after.
+Use this exact format with simple string values only:
+{"thought": "your step-by-step thinking process", "answer": "your final answer as a simple text string"}
+
+IMPORTANT: 
+- The "answer" field must be a simple text string, never a nested object
+- Do not use nested JSON objects or arrays in the answer field
+- Keep it flat and simple"""
     else:
         # Regular agents: Respond naturally but consistently
         format_instruction = """
