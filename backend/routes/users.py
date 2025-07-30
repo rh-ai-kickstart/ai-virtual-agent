@@ -23,6 +23,7 @@ from sqlalchemy.future import select
 from .. import models, schemas
 from ..database import get_db
 from ..services.user_service import UserService
+from ..utils.auth_utils import is_local_dev_mode, get_or_create_dev_user
 
 log = logging.getLogger(__name__)
 
@@ -30,6 +31,11 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 async def get_user_from_headers(headers: dict[str, str], db: AsyncSession):
+    # Check if local development mode is enabled
+    if is_local_dev_mode():
+        log.info("LOCAL_DEV_ENV_MODE is enabled, using development user")
+        return await get_or_create_dev_user(db)
+    
     username = headers.get("X-Forwarded-User")
     email = headers.get("X-Forwarded-Email")
     if not username and not email:
@@ -49,8 +55,8 @@ async def get_user_from_headers(headers: dict[str, str], db: AsyncSession):
 
 # profile endpoint must be declared first in order to function within
 # the /api/users context
-@router.get("/profile", response_model=schemas.UserRead)
-@router.get("/profile/", response_model=schemas.UserRead)
+@router.get("/profile")
+@router.get("/profile/")
 async def read_profile(request: Request, db: AsyncSession = Depends(get_db)):
     """
     Retrieve an authorized user's profile.
@@ -73,7 +79,19 @@ async def read_profile(request: Request, db: AsyncSession = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="User not found"
         )
-    return user
+    
+    # Convert the user to a dict for proper serialization
+    user_dict = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "role": user.role.value,  # Convert enum to string value
+        "agent_ids": user.agent_ids or [],
+        "created_at": user.created_at,
+        "updated_at": user.updated_at
+    }
+    
+    return user_dict
 
 
 @router.post("/", response_model=schemas.UserRead, status_code=status.HTTP_201_CREATED)
