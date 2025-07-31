@@ -34,7 +34,7 @@ backend/
 ### Database User Creation (PostgreSQL CLI)
 ```sql
 CREATE ROLE myuser WITH LOGIN PASSWORD 'mypassword';
-GRANT ALL PRIVILEGES ON DATABASE ai_virtual_assistant TO myuser;
+GRANT ALL PRIVILEGES ON DATABASE ai_virtual_agent TO myuser;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO myuser;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO myuser;
 ```

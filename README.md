@@ -25,7 +25,7 @@ This platform provides the tools to build and deploy conversational AI agents th
 
 **Option 1: One-command setup**
 ```bash
-git clone https://github.com/RHEcosystemAppEng/ai-virtual-agent
+git clone https://github.com/rh-ai-kickstart/ai-virtual-agent
 cd ai-virtual-agent
 make install dev
 ```
@@ -142,8 +142,8 @@ make reset-db
 
 ## Community & Support
 
-- **🐛 Issues** - [Report bugs and request features](https://github.com/RHEcosystemAppEng/ai-virtual-agent/issues)
-- **💬 Discussions** - [Ask questions and share ideas](https://github.com/RHEcosystemAppEng/ai-virtual-agent/discussions)
+- **🐛 Issues** - [Report bugs and request features](https://github.com/rh-ai-kickstart/ai-virtual-agent/issues)
+- **💬 Discussions** - [Ask questions and share ideas](https://github.com/rh-ai-kickstart/ai-virtual-agent/discussions)
 - **🤝 Contributing** - See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
 - **📚 Documentation** - Browse `/docs` for detailed guides
 

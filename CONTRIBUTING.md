@@ -68,7 +68,7 @@ Before you begin, ensure you have the following installed:
 3. Add the upstream remote:
 
    ```bash
-   git remote add upstream https://github.com/RHEcosystemAppEng/ai-virtual-agent
+   git remote add upstream https://github.com/rh-ai-kickstart/ai-virtual-agent
    ```
 
 ### Local Development Setup
@@ -86,7 +86,7 @@ podman compose --file compose.yaml up --detach
 **Optional**: Reset the database if needed:
 ```bash
 podman volume ls
-podman compose down && podman volume rm ai-virtual-assistant_pgdata
+podman compose down && podman volume rm ai-virtual-agent_pgdata
 podman compose --file compose.yaml up --detach
 ```
 
@@ -170,7 +170,7 @@ Use this setup for testing containerized deployment or when you prefer isolated 
 #### Build Application Container
 
 ```bash
-podman build --platform linux/amd64 -t ai-virtual-assistant:dev .
+podman build --platform linux/amd64 -t ai-virtual-agent:dev .
 ```
 
 #### Docker Compose Development
@@ -184,7 +184,7 @@ services:
   postgres:
     image: pgvector/pgvector:pg15
     environment:
-      POSTGRES_DB: ai_virtual_assistant
+      POSTGRES_DB: ai_virtual_agent
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: password
     ports:
@@ -209,7 +209,7 @@ services:
       context: .
       dockerfile: Containerfile
     environment:
-      DATABASE_URL: postgresql+asyncpg://admin:password@postgres:5432/ai_virtual_assistant
+      DATABASE_URL: postgresql+asyncpg://admin:password@postgres:5432/ai_virtual_agent
       LLAMASTACK_URL: http://llamastack:8321
       LOG_LEVEL: DEBUG
     ports:
@@ -268,9 +268,9 @@ For testing the built container:
 
 ```bash
 podman run --platform linux/amd64 --rm -p 8000:8000 \
-  -e DATABASE_URL=postgresql+asyncpg://admin:password@host.containers.internal:5432/ai_virtual_assistant \
+  -e DATABASE_URL=postgresql+asyncpg://admin:password@host.containers.internal:5432/ai_virtual_agent \
   -e LLAMASTACK_URL=http://host.containers.internal:8321 \
-  ai-virtual-assistant:dev
+  ai-virtual-agent:dev
 ```
 
 ## Development Environments
@@ -524,7 +524,7 @@ Before making significant changes, familiarize yourself with the system architec
 - Verify PostgreSQL is running and accessible:
    ```bash
    podman ps  # Check that postgres container is up
-   psql -h localhost -p 5432 -U admin -d ai_virtual_assistant
+   psql -h localhost -p 5432 -U admin -d ai_virtual_agent
    ```
 - Ensure all environment variables are set
 - Check database migrations: `alembic upgrade head`
@@ -541,7 +541,7 @@ Before making significant changes, familiarize yourself with the system architec
 - Ensure database is initialized: `alembic upgrade head`
 - Test connection manually:
   ```bash
-  psql -h localhost -p 5432 -U admin -d ai_virtual_assistant -c "SELECT 1;"
+  psql -h localhost -p 5432 -U admin -d ai_virtual_agent -c "SELECT 1;"
   ```
 
 **LlamaStack integration issues (optional for development):**
@@ -580,10 +580,10 @@ Before making significant changes, familiarize yourself with the system architec
 # Frontend logs are shown in terminal and browser console
 
 # Database logs
-podman logs ai-virtual-assistant-postgres-1
+podman logs ai-virtual-agent-postgres-1
 
 # MinIO logs
-podman logs ai-virtual-assistant-minio-1
+podman logs ai-virtual-agent-minio-1
 ```
 
 **Container Development:**
@@ -604,7 +604,7 @@ Create a `.env` file in the backend directory:
 
 ```env
 # Database
-DATABASE_URL=postgresql+asyncpg://admin:password@localhost:5432/ai_virtual_assistant
+DATABASE_URL=postgresql+asyncpg://admin:password@localhost:5432/ai_virtual_agent
 
 # LlamaStack (optional for development)
 LLAMASTACK_URL=http://localhost:8321
@@ -668,7 +668,7 @@ When using Docker Compose, environment variables are configured in the compose f
 
 - **Documentation**: Check the architecture guides in the `docs/` directory
 - **Documentation**: Check the project documentation in the `docs/` folder
-- **Discussions**: Join [GitHub Discussions](https://github.com/RHEcosystemAppEng/ai-virtual-agent/discussions)
+- **Discussions**: Join [GitHub Discussions](https://github.com/rh-ai-kickstart/ai-virtual-agent/discussions)
 - **Code Review**: Ask questions in pull request comments
 - **Local Setup**: Use this guide's troubleshooting section
 - **Production Deployment**: See [INSTALLING.md](INSTALLING.md)

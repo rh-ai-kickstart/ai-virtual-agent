@@ -118,7 +118,7 @@ async def startup_tasks():
     """Run all startup tasks after the server is ready."""
     logger.info("Starting post-startup tasks...")
 
-    service_name = "ai-virtual-assistant"
+    service_name = "ai-virtual-agent"
     namespace = get_incluster_namespace()
 
     if wait_for_service_ready(service_name, namespace):

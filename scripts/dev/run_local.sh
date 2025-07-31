@@ -1,7 +1,7 @@
 #! /bin/bash
 set -e # exit on error
 
-export DATABASE_URL=postgresql+asyncpg://admin:password@localhost:5432/ai_virtual_assistant
+export DATABASE_URL=postgresql+asyncpg://admin:password@localhost:5432/ai_virtual_agent
 # if you have LLamastack server deployed, you can use the following line:
 # oc port-forward svc/llamastack 8321
 export LLAMASTACK_URL=http://localhost:8321

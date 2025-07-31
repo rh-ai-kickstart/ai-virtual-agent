@@ -7,7 +7,7 @@ replicaCount: 1
 
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
-  repository: quay.io/ecosystem-appeng/ai-virtual-assistant
+  repository: quay.io/ecosystem-appeng/ai-virtual-agent
   # This sets the pull policy for images.
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
@@ -27,10 +27,10 @@ serviceAccount:
   automount: true
   # Annotations to add to the service account
   annotations:
-    serviceaccounts.openshift.io/oauth-redirectreference.ai-virtual-assistant: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"ai-virtual-assistant-authenticated"}}'
+    serviceaccounts.openshift.io/oauth-redirectreference.ai-virtual-agent: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"ai-virtual-agent-authenticated"}}'
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
-  name: "ai-virtual-assistant-proxy-sa"
+  name: "ai-virtual-agent-proxy-sa"
 
 # This is for setting Kubernetes Annotations to a Pod.
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
@@ -90,14 +90,14 @@ autoscaling:
 
 # Additional volumes on the output Deployment definition.
 volumes:
-  - name: secret-ai-virtual-assistant-tls
+  - name: secret-ai-virtual-agent-tls
     secret:
       defaultMode: 420
-      secretName: ai-virtual-assistant-tls
-  - name: secret-ai-virtual-assistant-proxy
+      secretName: ai-virtual-agent-tls
+  - name: secret-ai-virtual-agent-proxy
     secret:
       defaultMode: 420
-      secretName: ai-virtual-assistant-proxy
+      secretName: ai-virtual-agent-proxy
 # - name: foo
 #   secret:
 #     secretName: mysecret
@@ -129,7 +129,7 @@ seed:
 
 pgvector:
   extraDatabases:
-  - name: ai_virtual_assistant
+  - name: ai_virtual_agent
     vectordb: false
 
 minio:
@@ -150,7 +150,7 @@ llama-stack:
   auth:
     provider_config:
       type: "custom"
-      endpoint: http://ai-virtual-assistant:8887/validate
+      endpoint: http://ai-virtual-agent:8887/validate
     access_policy:
     - permit:
         actions: [create]

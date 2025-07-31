@@ -1,8 +1,8 @@
 -- create the database
-CREATE DATABASE ai_virtual_assistant;
+CREATE DATABASE ai_virtual_agent;
 
 -- connect to the database
-\c ai_virtual_assistant;
+\c ai_virtual_agent;
 
 -- -- enable UUID extension
 -- CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

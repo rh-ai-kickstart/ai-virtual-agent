@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "ai-virtual-assistant.fullname" . }}
+  name: {{ include "ai-virtual-agent.fullname" . }}
   annotations:
-    service.alpha.openshift.io/serving-cert-secret-name: ai-virtual-assistant-tls
+    service.alpha.openshift.io/serving-cert-secret-name: ai-virtual-agent-tls
   labels:
-    {{- include "ai-virtual-assistant.labels" . | nindent 4 }}
+    {{- include "ai-virtual-agent.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -22,5 +22,5 @@ spec:
       protocol: TCP
       name: http
   selector:
-    {{- include "ai-virtual-assistant.selectorLabels" . | nindent 4 }}
+    {{- include "ai-virtual-agent.selectorLabels" . | nindent 4 }}
   sessionAffinity: None

@@ -2,7 +2,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: {{ include "ai-virtual-assistant.fullname" . }}
+  name: {{ include "ai-virtual-agent.fullname" . }}
 rules:
 - apiGroups:
   - ""
@@ -16,14 +16,14 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: {{ include "ai-virtual-assistant.fullname" . }}
+  name: {{ include "ai-virtual-agent.fullname" . }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: {{ include "ai-virtual-assistant.fullname" . }}
+  name: {{ include "ai-virtual-agent.fullname" . }}
 subjects:
 - kind: ServiceAccount
-  name: {{ include "ai-virtual-assistant.serviceAccountName" . }}
+  name: {{ include "ai-virtual-agent.serviceAccountName" . }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -35,6 +35,6 @@ roleRef:
   name: system:auth-delegator
 subjects:
 - kind: ServiceAccount
-  name: {{ include "ai-virtual-assistant.serviceAccountName" . }}
+  name: {{ include "ai-virtual-agent.serviceAccountName" . }}
   namespace: {{ .Release.Namespace }}
 
