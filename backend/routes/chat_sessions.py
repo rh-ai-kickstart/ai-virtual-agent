@@ -22,11 +22,15 @@ from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from llama_stack_client.types.agents.session import Session
+from llama_stack_client.types.shared.interleaved_content_item import TextContentItem, ImageContentItem
 from pydantic import BaseModel
 
+from ..routes import attachments
 from ..api.llamastack import get_client_from_request
 from ..virtual_agents.agent_resource import EnhancedAgentResource
 from ..virtual_agents.session_resource import EnhancedSessionResource
+
+from urllib.parse import urlparse
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/chat_sessions", tags=["chat_sessions"])
@@ -204,14 +208,34 @@ async def get_chat_session(session_id: str, agent_id: str, request: Request) -> 
                 if hasattr(turn, "input_messages"):
                     for msg in turn.input_messages:
                         if hasattr(msg, "content"):
-                            messages.append({"role": "user", "content": msg.content})
+                            # The content of each message is a list, containing one or more
+                            # InterleavedContent objects.
+                            new_msg = []
+                            for m in msg.content:
+                                if isinstance(m, TextContentItem):
+                                    new_msg.append({"type": "text", "text": m.text})
+                                elif isinstance(m, ImageContentItem):
+                                    img = m.image
+                                    if img.url is not None:
+                                        # The image URL stored is an internal URL. Return just the path portion of it
+                                        # for the frontend to use, to avoid exposing the internal URL.
+                                        internal_url = urlparse(img.url.uri)
+                                        relative_path = internal_url.path
+                                        new_msg.append({"type": "image", "image": {"url": {"uri": relative_path}}})
+                                    else:
+                                        new_msg.append({"type": "image", "image": {"data": img.data}})
+                                else:
+                                    new_msg.append(m)
+                            messages.append({"role": "user", "content": new_msg})
 
                 # Add assistant response
                 if hasattr(turn, "output_message") and hasattr(
                     turn.output_message, "content"
                 ):
                     messages.append(
-                        {"role": "assistant", "content": turn.output_message.content}
+                        # For now, the output message content is always a string - wrap it explicitly
+                        # in a TextContentItem object to simplify processing on the frontend.
+                        {"role": "assistant", "content": [{"type": "text", "text": turn.output_message.content}]}
                     )
 
             # Get agent name
@@ -299,6 +323,7 @@ async def delete_chat_session(session_id: str, agent_id: str, request: Request) 
             result = await session_resource.delete(
                 session_id=session_id, agent_id=agent_id
             )
+            attachments.delete_attachments_for_session(session_id)
             log.info(f"Successfully deleted session {session_id} for agent {agent_id}")
             return result
         except HTTPException:
