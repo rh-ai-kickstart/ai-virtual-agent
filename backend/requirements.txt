@@ -19,3 +19,6 @@ pre-commit
 flake8
 httpx
 kubernetes
+boto3
+python-multipart
+python-magic

@@ -1,8 +1,19 @@
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
-  content: string;
+  content: SimpleContentItem[];
   timestamp: Date;
+}
+
+export interface SimpleContentItem {
+  type: 'text' | 'image';
+  text?: string;
+  image?: {
+    data?: string;
+    url?: {
+      uri: string;
+    };
+  };
 }
 
 export interface UseLlamaChatOptions {
@@ -25,7 +36,7 @@ export interface ChatSessionDetail {
   agent_id: string;
   messages: Array<{
     role: 'user' | 'assistant';
-    content: string;
+    content: SimpleContentItem[];
   }>;
   created_at: string;
   updated_at: string;
