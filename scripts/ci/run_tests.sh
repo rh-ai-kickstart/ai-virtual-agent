@@ -3,8 +3,58 @@
 # AI Virtual Agent Test Runner
 set -e
 
-echo "🧪 AI Virtual Agent Integration Tests"
+echo "🧪 AI Virtual Agent Test Suite"
 echo "====================================="
+
+# Parse command line arguments
+RUN_UNIT=false
+RUN_INTEGRATION=false
+SPECIFIC_TESTS=""
+
+# Default to running both if no arguments
+if [[ $# -eq 0 ]]; then
+    RUN_UNIT=true
+    RUN_INTEGRATION=true
+else
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --unit)
+                RUN_UNIT=true
+                shift
+                ;;
+            --integration)
+                RUN_INTEGRATION=true
+                shift
+                ;;
+            --all)
+                RUN_UNIT=true
+                RUN_INTEGRATION=true
+                shift
+                ;;
+            *)
+                # Assume it's a specific test file/pattern
+                SPECIFIC_TESTS="$SPECIFIC_TESTS $1"
+                shift
+                ;;
+        esac
+    done
+fi
+
+# If specific tests are provided, determine type based on path
+if [[ -n "$SPECIFIC_TESTS" ]]; then
+    if [[ "$SPECIFIC_TESTS" == *"unit"* ]]; then
+        RUN_UNIT=true
+        RUN_INTEGRATION=false
+    elif [[ "$SPECIFIC_TESTS" == *"integration"* ]]; then
+        RUN_UNIT=false
+        RUN_INTEGRATION=true
+    else
+        # Default to running the specific test without type detection
+        RUN_UNIT=false
+        RUN_INTEGRATION=false
+    fi
+fi
 
 # Default URLs (can be overridden by environment variables)
 FRONTEND_URL=${TEST_FRONTEND_URL:-"http://localhost:5173"}
@@ -18,22 +68,39 @@ echo "  Backend URL: $BACKEND_URL"
 echo "  LlamaStack URL: $LLAMASTACK_URL"
 echo ""
 
-# Check if virtual environment exists
-if [[ ! -d "venv" ]]; then
-    echo "⚠️  Virtual environment not found. Creating one..."
-    python3 -m venv venv
+# Check if we're already in a virtual environment
+if [[ -z "$VIRTUAL_ENV" ]] && [[ -z "$CONDA_DEFAULT_ENV" ]]; then
+    echo "⚠️  Warning: Not running in a virtual environment!"
+    echo "   It's recommended to activate a virtual environment or conda environment before running tests."
+    echo ""
 fi
 
-# Activate virtual environment
-source venv/bin/activate
+# Run unit tests first (they don't need services)
+if [[ "$RUN_UNIT" == true ]]; then
+    echo ""
+    echo "🧪 Running unit tests..."
+    echo "------------------------"
+    if [[ -n "$SPECIFIC_TESTS" ]]; then
+        pytest $SPECIFIC_TESTS -ra --cov=backend --cov-report=term-missing --cov-branch || {
+            echo ""
+            echo "❌ Unit tests failed!"
+            echo "   If you see pytest not found or import errors, try: pip install -r requirements-test.txt -r backend/requirements.txt"
+            exit 1
+        }
+    else
+        pytest tests/unit -ra --cov=backend --cov-report=term-missing --cov-branch || {
+            echo ""
+            echo "❌ Unit tests failed!"
+            echo "   If you see pytest not found or import errors, try: pip install -r requirements-test.txt -r backend/requirements.txt"
+            exit 1
+        }
+    fi
+    echo ""
+    echo "✅ Unit tests completed!"
+fi
 
-# Install test dependencies
-echo "📦 Checking test dependencies..."
-
-# Check if we need to install/update dependencies
-
-echo "📦 Installing/updating test dependencies..."
-pip install -r requirements-test.txt --quiet
+# Only check services if we're running integration tests
+if [[ "$RUN_INTEGRATION" == true ]]; then
 
 # Check if services are running
 echo "🔍 Checking if services are running..."
@@ -96,17 +163,46 @@ export TEST_FRONTEND_URL="$FRONTEND_URL"
 export TEST_BACKEND_URL="$BACKEND_URL"
 export TEST_LLAMASTACK_URL="$LLAMASTACK_URL"
 
-# Run tests
-echo "🚀 Running integration tests..."
+    # Run integration tests
+    echo "🚀 Running integration tests..."
+    echo "------------------------------"
 
-# Check if specific test file was provided
-if [[ $# -eq 0 ]]; then
-    # Run all integration tests
-    pytest tests/integration/ -v
-else
-    # Run specific test file or pattern
-    pytest "$@" -v
+    if [[ -n "$SPECIFIC_TESTS" ]]; then
+        pytest $SPECIFIC_TESTS -v || {
+            echo ""
+            echo "❌ Integration tests failed!"
+            echo "   If you see import errors, try: pip install -r requirements-test.txt"
+            exit 1
+        }
+    else
+        pytest tests/integration/ -v || {
+            echo ""
+            echo "❌ Integration tests failed!"
+            echo "   If you see import errors, try: pip install -r requirements-test.txt"
+            exit 1
+        }
+    fi
+    echo ""
+    echo "✅ Integration tests completed!"
+fi
+
+# Run specific tests if neither unit nor integration was explicitly chosen
+if [[ "$RUN_UNIT" == false && "$RUN_INTEGRATION" == false && -n "$SPECIFIC_TESTS" ]]; then
+    echo "🚀 Running specified tests..."
+    pytest $SPECIFIC_TESTS -v || {
+        echo ""
+        echo "❌ Tests failed!"
+        echo "   If you see import errors, try: pip install -r requirements-test.txt"
+        exit 1
+    }
 fi
 
 echo ""
-echo "✅ Tests completed successfully!"
+echo "✅ All tests completed successfully!"
+echo ""
+echo "Usage:"
+echo "  ./run_tests.sh              # Run all tests (unit + integration)"
+echo "  ./run_tests.sh --unit       # Run only unit tests"
+echo "  ./run_tests.sh --integration # Run only integration tests"
+echo "  ./run_tests.sh --all        # Run all tests (same as no args)"
+echo "  ./run_tests.sh tests/unit/test_specific.py  # Run specific test file"
