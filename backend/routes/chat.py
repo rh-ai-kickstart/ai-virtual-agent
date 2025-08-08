@@ -8,6 +8,9 @@ from typing import List
 from fastapi import Request
 from llama_stack_client.lib.agents.react.tool_parser import ReActOutput
 from llama_stack_client.types.shared_params.agent_config import AgentConfig, Toolgroup
+from llama_stack_client.types.shared.user_message import UserMessage
+from llama_stack_client.types.shared.interleaved_content import InterleavedContent
+
 
 from ..agents import ExistingAsyncAgent, ExistingReActAgent
 from ..api.llamastack import get_client_from_request
@@ -590,7 +593,7 @@ class Chat:
 
     
 
-    def stream(self, agent_id: str, session_id: str, prompt: str, agent_type_str: str = "ReAct"):
+    def stream(self, agent_id: str, session_id: str, prompt: InterleavedContent, agent_type_str: str = "ReAct"):
         """
         Stream chat response using LlamaStack with timeout and resource management.
 
@@ -607,7 +610,7 @@ class Chat:
             self.log.info(f"Using agent: {agent_id} with session: {session_id}")
 
             # Get existing messages from the session
-            messages = [{"role": "user", "content": prompt}]
+            messages = [UserMessage(role="user", content=prompt)]
 
             async def async_iterator_to_iterator():
                 # Create turn with LlamaStack with timeout

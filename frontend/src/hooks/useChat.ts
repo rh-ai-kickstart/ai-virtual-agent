@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { LlamaStackParser, extractSessionId } from '../adapters/llamaStackAdapter';
 import { CHAT_API_ENDPOINT } from '../config/api';
 import { fetchChatSession } from '@/services/chat-sessions';
-import { ChatMessage, UseLlamaChatOptions } from '@/types/chat';
+import { ChatMessage, UseLlamaChatOptions, SimpleContentItem } from '@/types/chat';
 
 // Re-export types for backward compatibility
 export type { ChatMessage, UseLlamaChatOptions } from '@/types/chat';
@@ -72,6 +72,7 @@ export function useChat(
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
 
   const handleInputChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, value?: string | number) => {
@@ -82,7 +83,7 @@ export function useChat(
   );
   interface SessionMessage {
     role: 'user' | 'assistant' | 'system';
-    content: string;
+    content: SimpleContentItem[];
   }
   const loadSession = useCallback(
     async (sessionId: string) => {
@@ -101,10 +102,17 @@ export function useChat(
         const convertedMessages: ChatMessage[] = sessionDetail.messages.map(
           (msg: SessionMessage, index: number) => {
             let processedContent = msg.content;
+            let textContent = '';
+
+            for (const item of msg.content) {
+              if (item.type === 'text') {
+                textContent += item.text || '';
+              }
+            }
 
             // Process assistant messages that might contain raw JSON
             if (msg.role === 'assistant') {
-              processedContent = processStoredReActResponse(msg.content);
+              processedContent = [{type: 'text', text: processStoredReActResponse(textContent)}];
             }
 
             return {
@@ -133,14 +141,18 @@ export function useChat(
     [agentId, options]
   );
 
+  const clearAttachedFiles = useCallback(() => {
+    setAttachedFiles([]);
+  }, []);
+
   const sendMessage = useCallback(
-    async (content: string) => {
-      if (!content.trim() || isLoading) return;
+    async (content: SimpleContentItem[]) => {
+      if (isLoading) return;
 
       const userMessage: ChatMessage = {
         id: `user-${Date.now()}`,
         role: 'user',
-        content: content.trim(),
+        content: content,
         timestamp: new Date(),
       };
 
@@ -179,7 +191,10 @@ export function useChat(
         const assistantMessage: ChatMessage = {
           id: `assistant-${Date.now()}`,
           role: 'assistant',
-          content: '',
+          content: [{
+            text: '',
+            type: 'text',
+          }],
           timestamp: new Date(),
         };
 
@@ -229,15 +244,21 @@ export function useChat(
                   const updated = [...prev];
                   const lastMsg = updated[updated.length - 1];
                   if (lastMsg && lastMsg.role === 'assistant') {
-                    // For regular agents, accumulate content (same as ReAct but without special handling)
-                    if (agentType === 'Regular') {
-                      lastMsg.content += parsed;
-                    } else if (parsed.includes('🤔 **Thinking:**')) {
-                      // For ReAct agents, replace content for complete responses
-                      lastMsg.content = parsed;
-                    } else {
-                      // For ReAct agents, append for streaming responses
-                      lastMsg.content += parsed;
+                    let c: SimpleContentItem[] = [...lastMsg.content];
+                    if (c[0].type === 'text') {
+                      // For regular agents, accumulate content (same as ReAct but without special handling)
+                      if (agentType === 'Regular') {
+                          c[0].text += parsed;
+                          lastMsg.content = c;
+                      } else if (parsed.includes('🤔 **Thinking:**')) {
+                        // For ReAct agents, replace content for complete responses
+                          c[0].text = parsed;
+                          lastMsg.content = c;
+                      } else {
+                        // For ReAct agents, append for streaming responses
+                          c[0].text += parsed;
+                          lastMsg.content = c;
+                      }
                     }
                   }
                   return updated;
@@ -252,26 +273,25 @@ export function useChat(
         options?.onError?.(new Error(errorMessage));
 
         // Remove the loading assistant message on error
-        setMessages((prev) => prev.filter((msg) => msg.role !== 'assistant' || msg.content !== ''));
+        setMessages((prev) => prev.filter((msg) => {
+          msg.role !== 'assistant' || msg.content.length > 0
+        }));
       } finally {
         setIsLoading(false);
       }
     },
-    [agentId, messages, sessionId, isLoading, options, agentType]
+    [agentId, messages, sessionId, isLoading, options, attachedFiles, agentType]
   );
 
-  const handleSubmit = useCallback(
-    (event: React.FormEvent) => {
-      event.preventDefault();
-      if (input.trim()) {
-        void sendMessage(input);
-      }
+  const handleAttach = useCallback(
+    (data: File[]) => {
+      setAttachedFiles((prev: File[]) => [...prev, ...data]);
     },
-    [input, sendMessage]
+    []
   );
 
   const append = useCallback(
-    (message: { role: 'user' | 'assistant'; content: string }) => {
+    (message: { role: 'user' | 'assistant'; content: SimpleContentItem[] }) => {
       void sendMessage(message.content);
     },
     [sendMessage]
@@ -281,6 +301,7 @@ export function useChat(
   useEffect(() => {
     setMessages([]);
     setInput('');
+    setAttachedFiles([]);
     setIsLoading(false);
     setSessionId(null);
   }, [agentId]);
@@ -289,10 +310,13 @@ export function useChat(
     messages,
     input,
     handleInputChange,
-    handleSubmit,
+    handleAttach,
     append,
     isLoading,
     loadSession,
     sessionId,
+    attachedFiles,
+    clearAttachedFiles,
+    setAttachedFiles,
   };
 }

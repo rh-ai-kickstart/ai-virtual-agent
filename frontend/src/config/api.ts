@@ -15,3 +15,4 @@ export const CHAT_API_ENDPOINT = '/api/llama_stack/chat';
 export const CHAT_SESSIONS_API_ENDPOINT = '/api/chat_sessions/';
 export const SHIELDS_API_ENDPOINT = '/api/llama_stack/shields';
 export const USERS_API_ENDPOINT = '/api/users/';
+export const ATTACHMENTS_API_ENDPOINT = '/api/attachments/';

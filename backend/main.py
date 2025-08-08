@@ -26,6 +26,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from .database import AsyncSessionLocal
 from .routes import (
     agent_templates,
+    attachments,
     chat_sessions,
     guardrails,
     knowledge_bases,
@@ -182,7 +183,7 @@ app.include_router(model_servers.router, prefix="/api")
 app.include_router(llama_stack.router, prefix="/api")
 app.include_router(chat_sessions.router, prefix="/api")
 app.include_router(agent_templates.router, prefix="/api")
-
+app.include_router(attachments.router, prefix="/api")
 
 class SPAStaticFiles(StaticFiles):
     """

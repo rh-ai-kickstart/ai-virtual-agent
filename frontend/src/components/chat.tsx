@@ -13,6 +13,7 @@ import {
   ChatbotHeaderSelectorDropdown,
   ChatbotHeaderTitle,
   Conversation,
+  FileDetailsLabel,
   Message,
   MessageBar,
   MessageBox,
@@ -27,6 +28,9 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
+  Panel,
+  PanelMain,
+  PanelMainBody,
 } from '@patternfly/react-core';
 import { Agent } from '@/types/agent';
 import { fetchUserAgents } from '@/services/agents';
@@ -41,6 +45,8 @@ import {
 import { useMutation } from '@tanstack/react-query';
 import botAvatar from '../assets/img/bot-avatar.svg';
 import userAvatar from '../assets/img/user-avatar.svg';
+import { ATTACHMENTS_API_ENDPOINT } from '@/config/api';
+import { SimpleContentItem } from '@/types/chat';
 
 const footnoteProps = {
   label: 'ChatBot uses AI. Check for mistakes.',
@@ -99,6 +105,10 @@ export function Chat() {
     isLoading,
     loadSession,
     sessionId,
+    attachedFiles,
+    handleAttach,
+    clearAttachedFiles,
+    setAttachedFiles,
   } = useChat(selectedAgent || 'default', agentType, {
     onError: (error: Error) => {
       console.error('Chat error:', error);
@@ -111,6 +121,22 @@ export function Chat() {
       }
     },
   });
+  const contentToText = (content: SimpleContentItem): string => {
+    if (content.type === 'text') {
+      return content.text || '';
+    }
+
+    // The backend does not set/store the sourceType, so we need to check for the url property
+    if (content.type === 'image' && 'url' in content.image) {
+      return `![Image](${content.image.url.uri})`;
+    }
+
+    return '';
+  }
+
+  const multipleContentToText = (content: SimpleContentItem[]): string => {
+    return content.map(m => contentToText(m)).join('\n');
+  };
 
   // Convert our chat messages to PatternFly format
   const messages = React.useMemo(
@@ -119,7 +145,7 @@ export function Chat() {
         (msg): MessageProps => ({
           id: msg.id,
           role: msg.role === 'user' ? 'user' : 'bot',
-          content: msg.content,
+          content: multipleContentToText(msg.content),
           name: msg.role === 'user' ? 'You' : 'Assistant',
           timestamp: msg.timestamp.toLocaleString(),
           avatar: msg.role === 'user' ? userAvatar : botAvatar,
@@ -398,16 +424,23 @@ export function Chat() {
   }, [selectedAgent]); // fetchSessionsData intentionally excluded to prevent infinite loop
 
   // Handle message sending
-  const handleSendMessage = (message: string | number) => {
+  const handleSendMessage = async (message: string | number) => {
     console.log('handleSendMessage called with:', message, 'selectedAgent:', selectedAgent);
     console.log('Current session ID:', sessionId);
     if (typeof message === 'string' && message.trim() && selectedAgent) {
       console.log('Sending message via append:', message, 'using session:', sessionId);
+      let contents: SimpleContentItem[] = [];
+      contents.push({type: 'text', text: message});
+      for (const file of attachedFiles) {
+        const attachmentUrl = await handleUploadAttachment(file, sessionId);
+        contents.push({type: 'image', image: {sourceType: 'url', url: {uri: attachmentUrl}}});
+      }
       // Add the message to the chat
       append({
         role: 'user',
-        content: message.toString(),
+        content: contents,
       });
+      clearAttachedFiles();
     } else {
       console.log('Message not sent - conditions not met:', {
         messageType: typeof message,
@@ -415,6 +448,32 @@ export function Chat() {
         selectedAgent: selectedAgent,
       });
     }
+  };
+
+  const handleUploadAttachment = async (file: File, sessionId: string | null): Promise<string> => {
+    if (!sessionId) {
+      throw new Error('Session ID is required');
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('session_id', sessionId);
+
+    const response = await fetch(ATTACHMENTS_API_ENDPOINT, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to upload attachment');
+    }
+
+    const data = await response.json();
+    console.log('Attachment uploaded successfully:', data);
+
+    // NOTE: The frontend is not aware of its own base URL,
+    // so the URL returned here is only the path portion, e.g. /api/attachments/...
+    return `${ATTACHMENTS_API_ENDPOINT}${sessionId}/${data.filename}`;
   };
 
   // Handle loading and error states for user context
@@ -512,13 +571,32 @@ export function Chat() {
               </MessageBox>
             </ChatbotContent>
             <ChatbotFooter>
-              <MessageBar
-                onSendMessage={handleSendMessage as (message: string | number) => void}
-                hasMicrophoneButton
-                isSendButtonDisabled={isLoading || !selectedAgent}
-                value={input}
-                onChange={handleInputChange}
-              />
+              <Panel variant="secondary">
+                <PanelMain>
+                  <PanelMainBody>
+                  <div style={{display: 'flex', flexWrap: 'wrap', paddingTop: '0.5em', paddingBottom: '0.5em'}}>
+                    {attachedFiles.map((file, index) => (
+                      <div key={file.name} style={{margin: '0.5em'}}>
+                        <FileDetailsLabel
+                          fileName={file.name}
+                          onClose={() => {
+                            setAttachedFiles(attachedFiles.filter((_, i) => i !== index));
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <MessageBar
+                    onSendMessage={handleSendMessage as (message: string | number) => void}
+                    hasMicrophoneButton
+                    isSendButtonDisabled={isLoading || !selectedAgent}
+                    value={input}
+                    onChange={handleInputChange}
+                    handleAttach={handleAttach}
+                  />
+                  </PanelMainBody>
+                </PanelMain>
+              </Panel>
               <ChatbotFootnote {...footnoteProps} />
             </ChatbotFooter>
           </Fragment>
