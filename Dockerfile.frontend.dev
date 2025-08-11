@@ -1,0 +1,28 @@
+FROM registry.access.redhat.com/ubi9/nodejs-22:latest
+
+USER root
+
+# Set working directory
+WORKDIR /app
+
+# Ensure the directory is owned by the default user (1001)
+RUN chown -R 1001:0 /app
+
+# Switch to non-root user (UBI images use 1001 by default)
+USER 1001
+
+# Copy package files first to leverage Docker cache
+COPY --chown=1001:0 frontend/package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy frontend source code
+COPY --chown=1001:0 frontend/ ./
+
+# Expose Vite dev server port
+EXPOSE 5173
+
+# Start the development server
+# Vite dev server with host binding for container access
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]

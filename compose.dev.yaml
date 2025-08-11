@@ -1,0 +1,98 @@
+services:
+  # Database service (existing, enhanced)
+  db:
+    image: postgres:15
+    container_name: postgresql-dev
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-ai_virtual_agent}
+      - POSTGRES_USER=${POSTGRES_USER:-admin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-ai_virtual_agent}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai-va-network
+
+  # LlamaStack service
+  llamastack:
+    image: llamastack/distribution-ollama:latest
+    container_name: llamastack-dev
+    platform: linux/amd64
+    restart: unless-stopped
+    ports:
+      - '${LLAMASTACK_PORT:-8321}:8321'
+    volumes:
+      - ~/.llama:/root/.llama
+      - ./scripts/dev/local_llamastack_server/run.yaml:/run.yaml
+    command: ["--yaml-config", "/run.yaml", "--port", "8321"]
+    networks:
+      - ai-va-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8321/docs || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Backend service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend.dev
+    container_name: ai-va-backend-dev
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-ai_virtual_agent}
+      - LOCAL_DEV_ENV_MODE=${LOCAL_DEV_ENV_MODE:-false}
+      - LLAMASTACK_URL=${LLAMASTACK_URL:-http://llamastack:8321}
+    ports:
+      - '${BACKEND_PORT:-8000}:8000'
+    volumes:
+      - ./backend:/app/backend:rw
+    depends_on:
+      db:
+        condition: service_healthy
+      llamastack:
+        condition: service_healthy
+    networks:
+      - ai-va-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/docs || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Frontend service
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend.dev
+    container_name: ai-va-frontend-dev
+    restart: unless-stopped
+    environment:
+      - VITE_API_BASE_URL=http://backend:8000
+    ports:
+      - '${FRONTEND_PORT:-5173}:5173'
+    volumes:
+      - ./frontend:/app:rw
+      - /app/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - ai-va-network
+
+volumes:
+  pgdata:
+
+networks:
+  ai-va-network:
+    driver: bridge
