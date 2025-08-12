@@ -11,7 +11,7 @@ repos:
       - id: end-of-file-fixer
         exclude: '^(backend/migrations/|migrations/)'
       - id: check-yaml
-        exclude: '^(backend/migrations/|migrations/|deploy/|../deploy/|../ingestion/|ingestion/|tests/.*\.tavern\.yaml$|.*debug/deploy\.yaml$)'
+        exclude: '^(backend/migrations/|migrations/|deploy/|../deploy/|../ingestion/|ingestion/|tests/.*\.tavern\.yaml$|.*debug/deploy\.yaml$|.*/helm/templates/.*\.yaml$)'
       - id: check-added-large-files
       - id: check-merge-conflict
       - id: debug-statements
