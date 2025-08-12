@@ -7,13 +7,9 @@ from mcp.server.fastmcp import FastMCP
 # Initialize FastMCP
 mcp_server = FastMCP()
 
-# Initialize FastMCP in japanese
-# エムシーピーサーバー = ファストエムシーピー()
-
 STORE_SERVER_URL = os.getenv("STORE_SERVER_URL", "http://localhost:8001")
 
-# HTTP client (using httpx)
-# TODO: It's good practice to use a client instance for connection pooling, etc.
+# HTTP client (using httpx) - provides connection pooling and reuse
 async_client = httpx.AsyncClient(base_url=STORE_SERVER_URL)
 
 
@@ -51,7 +47,16 @@ async def make_api_request(
 
 @mcp_server.tool()
 async def get_products(skip: int = 0, limit: int = 100) -> List[Dict[str, Any]]:
-    """Fetches a list of all products from the Store Server API."""
+    """Fetches a list of all products from the database.
+
+    Args:
+        skip: Number of products to skip (for pagination)
+        limit: Maximum number of products to return (for pagination)
+
+    Returns:
+        List of product dictionaries containing id, name, description,
+        inventory, and price
+    """
     return await make_api_request(
         "GET", "/products/", params={"skip": skip, "limit": limit}
     )
@@ -59,7 +64,15 @@ async def get_products(skip: int = 0, limit: int = 100) -> List[Dict[str, Any]]:
 
 @mcp_server.tool()
 async def get_product_by_id(product_id: int) -> Optional[Dict[str, Any]]:
-    """Fetches a single product by its ID from the Store Server API."""
+    """Fetches a single product by its ID from the database.
+
+    Args:
+        product_id: The unique identifier of the product to retrieve
+
+    Returns:
+        Product dictionary with id, name, description, inventory, and price,
+        or None if not found
+    """
     try:
         return await make_api_request("GET", f"/products/id/{product_id}")
     except ValueError as e:
@@ -70,7 +83,15 @@ async def get_product_by_id(product_id: int) -> Optional[Dict[str, Any]]:
 
 @mcp_server.tool()
 async def get_product_by_name(name: str) -> Optional[Dict[str, Any]]:
-    """Fetches a single product by its name from the Store Server API."""
+    """Fetches a single product by its name from the database.
+
+    Args:
+        name: The exact name of the product to retrieve
+
+    Returns:
+        Product dictionary with id, name, description, inventory, and price,
+        or None if not found
+    """
     try:
         return await make_api_request("GET", f"/products/name/{name}")
     except ValueError as e:
@@ -83,7 +104,16 @@ async def get_product_by_name(name: str) -> Optional[Dict[str, Any]]:
 async def search_products(
     query: str, skip: int = 0, limit: int = 100
 ) -> List[Dict[str, Any]]:
-    """Searches for products via the Store Server API based on a query string."""
+    """Searches for products based on a query string (name or description).
+
+    Args:
+        query: Search term to match against product names and descriptions
+        skip: Number of products to skip (for pagination)
+        limit: Maximum number of products to return (for pagination)
+
+    Returns:
+        List of matching product dictionaries, empty list if no matches found
+    """
     try:
         return await make_api_request(
             "GET",
@@ -98,16 +128,38 @@ async def search_products(
 
 @mcp_server.tool()
 async def add_product(
-    name: str, description: Optional[str] = None, inventory: int = 0
+    name: str, description: Optional[str] = None, inventory: int = 0, price: float = 0.0
 ) -> Dict[str, Any]:
-    """Adds a new product via the Store Server API."""
-    payload = {"name": name, "description": description, "inventory": inventory}
+    """Adds a new product to the database.
+
+    Args:
+        name: The name of the product (required)
+        description: Optional description of the product
+        inventory: Initial inventory count (defaults to 0)
+        price: Price of the product (defaults to 0.0)
+
+    Returns:
+        Created product dictionary with id, name, description, inventory, and price
+    """
+    payload = {
+        "name": name,
+        "description": description,
+        "inventory": inventory,
+        "price": price,
+    }
     return await make_api_request("POST", "/products/", json_data=payload)
 
 
 @mcp_server.tool()
 async def remove_product(product_id: int) -> Optional[Dict[str, Any]]:
-    """Removes a product by its ID via the Store Server API."""
+    """Removes a product from the database by its ID.
+
+    Args:
+        product_id: The unique identifier of the product to remove
+
+    Returns:
+        Removed product dictionary if found and deleted, None if product not found
+    """
     try:
         return await make_api_request("DELETE", f"/products/{product_id}")
     except ValueError as e:
@@ -120,8 +172,20 @@ async def remove_product(product_id: int) -> Optional[Dict[str, Any]]:
 async def order_product(
     product_id: int, quantity: int, customer_identifier: str
 ) -> Dict[str, Any]:
-    """Places an order for a product via the Store Server API.
-    Raises ValueError if product not found, insufficient inventory, or other API error.
+    """Places an order for a product.
+    This involves checking inventory, deducting the quantity from the product's
+    inventory, and creating an order record in the database.
+
+    Args:
+        product_id: The unique identifier of the product to order
+        quantity: The number of items to order
+        customer_identifier: Identifier for the customer placing the order
+
+    Returns:
+        Created order dictionary with id, product_id, quantity, and customer_identifier
+
+    Raises:
+        ValueError: If product not found, insufficient inventory, or other API error
     """
     payload = {
         "product_id": product_id,
@@ -131,15 +195,9 @@ async def order_product(
     return await make_api_request("POST", "/orders/", json_data=payload)
 
 
-# TODO: managed async client lifecycle
-# @mcp_server.on_event("startup")
-# async def startup_event():
-#     global async_client
-#     async_client = httpx.AsyncClient(base_url=STORE_SERVER_URL)
-
-# @mcp_server.on_event("shutdown")
-# async def shutdown_event():
-#     await async_client.close()
+# Note: FastMCP doesn't support lifecycle events like startup/shutdown
+# The async_client is initialized at module level and will be cleaned up
+# when the process terminates
 
 if __name__ == "__main__":
     mcp_server.settings.port = 8001
