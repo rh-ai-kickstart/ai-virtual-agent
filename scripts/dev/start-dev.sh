@@ -21,11 +21,11 @@ if ! podman compose --help &> /dev/null; then
     exit 1
 fi
 
-# Create .env.dev if it doesn't exist
-if [ ! -f .env.dev ]; then
-    echo "📄 Creating .env.dev from template..."
-    cp .env.dev.example .env.dev
-    echo "✅ Created .env.dev - you can customize it if needed"
+# Create .env if it doesn't exist
+if [ ! -f .env ]; then
+    echo "📄 Creating .env from template..."
+    cp .env.example .env
+    echo "✅ Created .env - you can customize it if needed"
 fi
 
 # Ensure ollama is running (required for LlamaStack)
@@ -42,11 +42,11 @@ fi
 
 # Stop any existing containers
 echo "🛑 Stopping existing containers..."
-podman compose --env-file .env.dev -f compose.dev.yaml down --remove-orphans
+podman compose -f compose.dev.yaml down --remove-orphans
 
 # Start all services
 echo "🏗️  Building and starting all services..."
-podman compose --env-file .env.dev -f compose.dev.yaml up --build -d
+podman compose -f compose.dev.yaml up --build -d
 
 # Wait for services to be healthy
 echo "⏳ Waiting for services to be ready..."
@@ -54,7 +54,7 @@ sleep 10
 
 # Check service status
 echo "📊 Service Status:"
-podman compose --env-file .env.dev -f compose.dev.yaml ps
+podman compose -f compose.dev.yaml ps
 
 # Show helpful information
 echo ""
@@ -67,9 +67,9 @@ echo "   Database:    postgresql://admin:password@localhost:5432/ai_virtual_agen
 echo "   LlamaStack:  http://localhost:8321"
 echo ""
 echo "📚 Useful commands:"
-echo "   View logs:      podman compose --env-file .env.dev -f compose.dev.yaml logs -f"
+echo "   View logs:      podman compose -f compose.dev.yaml logs -f"
 echo "   Stop services:  ./scripts/dev/stop-dev.sh"
-echo "   Restart:        podman compose --env-file .env.dev -f compose.dev.yaml restart [service]"
+echo "   Restart:        podman compose -f compose.dev.yaml restart [service]"
 echo ""
 echo "🔧 Development features:"
 echo "   ✅ Hot reload enabled for backend and frontend"

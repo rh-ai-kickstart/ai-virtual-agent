@@ -21,6 +21,12 @@ This platform provides the tools to build and deploy conversational AI agents th
 
 ## Quick Start
 
+### Local Development
+
+For local containerized development (without cluster):
+
+📖 **[→ See Local Development Guide](DEVELOPMENT.md)**
+
 ### Installation
 
 **Option 1: One-command setup**
@@ -93,6 +99,7 @@ The platform integrates several components:
 ## Getting Started Guides
 
 ### 👩‍💻 **For Developers**
+- **[Local Development Guide](DEVELOPMENT.md)** - Containerized development environment (without cluster)
 - **[Contributing Guide](CONTRIBUTING.md)** - Development setup and workflow
 - **[Backend API Reference](docs/api-reference.md)** - Complete API documentation
 - **[Frontend Architecture](frontend/README.md)** - UI components and patterns

@@ -14,7 +14,6 @@ dist-ssr
 # Environment files (exclude actual env files, allow examples)
 .env
 .env.local
-.env.dev
 .env.prod
 .env.production
 .env.staging

@@ -15,9 +15,14 @@ Ensure you have the following running on your system:
 ### Start Development Environment
 
 ```bash
-# Start all services with one command! 🚀
+# Option 1: Using Makefile (recommended)
+make dev-compose-up
+
+# Option 2: Using the script directly
 ./scripts/dev/start-dev.sh
 ```
+
+**Note**: First startup takes longer due to image downloads.
 
 That's it! All services will be running:
 
@@ -29,6 +34,10 @@ That's it! All services will be running:
 ### Stop Development Environment
 
 ```bash
+# Option 1: Using Makefile (recommended)
+make dev-compose-down
+
+# Option 2: Using the script directly
 ./scripts/dev/stop-dev.sh
 ```
 
@@ -43,10 +52,10 @@ That's it! All services will be running:
 
 ### Environment Configuration
 
-The development setup uses `.env.dev` for configuration. Copy from the template:
+The development setup uses `.env` for configuration. Copy from the template:
 
 ```bash
-cp .env.dev.example .env.dev
+cp .env.example .env
 ```
 
 Default configuration:
@@ -77,8 +86,8 @@ Default configuration:
    # Check what's using the ports
    lsof -i :5432 -i :8000 -i :5173 -i :8321
    
-   # Customize ports in .env.dev
-   vim .env.dev
+   # Customize ports in .env
+   vim .env
    ```
 
 3. **Permission issues**
@@ -89,27 +98,51 @@ Default configuration:
 
 4. **View service logs**
    ```bash
-   # All services
-   podman compose --env-file .env.dev -f compose.dev.yaml logs -f
+   # All services (using Makefile)
+   make dev-compose-logs
+   
+   # All services (direct command)
+   podman compose -f compose.dev.yaml logs -f
    
    # Specific service
-   podman compose --env-file .env.dev -f compose.dev.yaml logs -f backend
+   podman compose -f compose.dev.yaml logs -f backend
    ```
 
 ### Useful Commands
 
+#### Using Makefile (Recommended)
+
+```bash
+# View service logs
+make dev-compose-logs
+
+# Check service status  
+make dev-compose-status
+
+# Restart all services
+make dev-compose-restart
+
+# Rebuild and restart services
+make dev-compose-build
+
+# See all available development commands
+make help
+```
+
+#### Using podman compose directly
+
 ```bash
 # Restart a specific service
-podman compose --env-file .env.dev -f compose.dev.yaml restart backend
+podman compose -f compose.dev.yaml restart backend
 
 # Rebuild a service
-podman compose --env-file .env.dev -f compose.dev.yaml up --build backend
+podman compose -f compose.dev.yaml up --build backend
 
 # Access a service shell
 podman exec -it ai-va-backend-dev bash
 
 # Remove all data (fresh start)
-podman compose --env-file .env.dev -f compose.dev.yaml down --volumes
+podman compose -f compose.dev.yaml down --volumes
 ```
 
 ## Migration from Manual Setup
@@ -132,11 +165,29 @@ cd frontend && npm install && npm run dev
 
 ### After (1 Command)
 ```bash
+# Using Makefile (recommended)
+make dev-compose-up
+
+# Or using script directly
 ./scripts/dev/start-dev.sh
 ```
 
+## Development Container Commands Reference
+
+The following Makefile targets are available for containerized development:
+
+- `make dev-compose-up` - Start development services (uses .env and compose.dev.yaml)
+- `make dev-compose-down` - Stop development services
+- `make dev-compose-restart` - Restart development services
+- `make dev-compose-logs` - View logs from development services
+- `make dev-compose-build` - Rebuild and start development services
+- `make dev-compose-status` - Show status of development services
+
+For all available make targets, run `make help`.
+
 ## Next Steps
 
-- Customize `.env.dev` for your specific needs
+- Customize `.env` for your specific needs
 - Add additional services to `compose.dev.yaml` as needed
 - Use the existing `compose.yaml` for production-like testing
+- Run `make help` to see all available project commands
