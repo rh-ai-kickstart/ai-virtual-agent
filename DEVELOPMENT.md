@@ -172,6 +172,16 @@ make dev-compose-up
 ./scripts/dev/start-dev.sh
 ```
 
+## When to Rebuild Containers
+
+Use `make dev-compose-build` when you modify:
+
+- **Dependencies**: `backend/requirements.txt` or `frontend/package.json`
+- **Container files**: `Containerfile`, `Dockerfile.*` 
+- **Startup scripts**: `scripts/dev/start-backend-dev.sh`
+
+Code changes in `backend/` and `frontend/` directories use hot reload - no rebuild needed.
+
 ## Development Container Commands Reference
 
 The following Makefile targets are available for containerized development:
