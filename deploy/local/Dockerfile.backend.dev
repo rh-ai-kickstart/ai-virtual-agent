@@ -1,0 +1,38 @@
+FROM registry.access.redhat.com/ubi9/python-312:latest
+
+USER root
+
+# Install system dependencies including build tools
+RUN dnf install -y nmap-ncat gcc gcc-c++ make git && dnf clean all
+
+# Set working directory
+WORKDIR /app
+
+# Ensure the directory is owned by the default user (1001)
+RUN chown -R 1001:0 /app
+
+# Switch to non-root user (UBI images use 1001 by default)
+USER 1001
+
+# Upgrade pip first (in the virtual environment)
+RUN pip install --upgrade pip
+
+# Copy requirements and install Python dependencies
+COPY --chown=1001:0 backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy backend code
+COPY --chown=1001:0 backend/ ./backend/
+
+# Set Python path
+ENV PYTHONPATH=/app
+
+# Expose the port
+EXPOSE 8000
+
+# Copy startup script
+COPY --chown=1001:0 deploy/local/dev/start-backend-dev.sh /app/start-backend-dev.sh
+RUN chmod +x /app/start-backend-dev.sh
+
+# Start the development server with auto-migrations
+CMD ["/app/start-backend-dev.sh"]
