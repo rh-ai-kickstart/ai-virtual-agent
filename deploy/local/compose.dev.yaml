@@ -30,7 +30,7 @@ services:
       - '${LLAMASTACK_PORT:-8321}:8321'
     volumes:
       - ~/.llama:/root/.llama
-      - ./scripts/dev/local_llamastack_server/run.yaml:/run.yaml
+      - ${PWD}/deploy/local/dev/local_llamastack_server/run.yaml:/run.yaml
     command: ["--yaml-config", "/run.yaml", "--port", "8321"]
     networks:
       - ai-va-network
@@ -44,8 +44,8 @@ services:
   # Backend service
   backend:
     build:
-      context: .
-      dockerfile: Dockerfile.backend.dev
+      context: ../../
+      dockerfile: deploy/local/Dockerfile.backend.dev
     container_name: ai-va-backend-dev
     restart: unless-stopped
     environment:
@@ -73,8 +73,8 @@ services:
   # Frontend service
   frontend:
     build:
-      context: .
-      dockerfile: Dockerfile.frontend.dev
+      context: ../../
+      dockerfile: deploy/local/Dockerfile.frontend.dev
     container_name: ai-va-frontend-dev
     restart: unless-stopped
     environment:

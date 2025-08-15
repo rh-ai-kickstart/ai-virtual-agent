@@ -5,6 +5,9 @@
 
 set -e
 
+# Change to project root directory
+cd "$(dirname "$0")/../../.."
+
 echo "🚀 Starting AI Virtual Agent Development Environment..."
 
 # Check if podman is installed
@@ -42,11 +45,11 @@ fi
 
 # Stop any existing containers
 echo "🛑 Stopping existing containers..."
-podman compose -f compose.dev.yaml down --remove-orphans
+podman compose -f deploy/local/compose.dev.yaml down --remove-orphans
 
 # Start all services
 echo "🏗️  Building and starting all services..."
-podman compose -f compose.dev.yaml up --build -d
+podman compose -f deploy/local/compose.dev.yaml up --build -d
 
 # Wait for services to be healthy
 echo "⏳ Waiting for services to be ready..."
@@ -54,7 +57,7 @@ sleep 10
 
 # Check service status
 echo "📊 Service Status:"
-podman compose -f compose.dev.yaml ps
+podman compose -f deploy/local/compose.dev.yaml ps
 
 # Show helpful information
 echo ""

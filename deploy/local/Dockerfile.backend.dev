@@ -31,7 +31,7 @@ ENV PYTHONPATH=/app
 EXPOSE 8000
 
 # Copy startup script
-COPY --chown=1001:0 scripts/dev/start-backend-dev.sh /app/start-backend-dev.sh
+COPY --chown=1001:0 deploy/local/dev/start-backend-dev.sh /app/start-backend-dev.sh
 RUN chmod +x /app/start-backend-dev.sh
 
 # Start the development server with auto-migrations
