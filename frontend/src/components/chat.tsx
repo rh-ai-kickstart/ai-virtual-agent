@@ -128,12 +128,12 @@ export function Chat() {
       scrollToBottomRef.current.scrollIntoView({
         behavior: 'smooth',
         block: 'end',
-        inline: 'nearest'
+        inline: 'nearest',
       });
     }
   }, []);
 
-    // Auto-scroll when messages change
+  // Auto-scroll when messages change
   useEffect(() => {
     scrollToBottom();
   }, [chatMessages, scrollToBottom]);
@@ -207,7 +207,10 @@ export function Chat() {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  const onSelectAgent = (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
+  const onSelectAgent = (
+    _event: React.MouseEvent<Element, MouseEvent> | undefined,
+    value: string | number | undefined
+  ) => {
     if (value) {
       const agentId = value.toString();
       console.log('Agent selected:', agentId);
@@ -297,8 +300,6 @@ export function Chat() {
     setIsDeleteModalOpen(false);
     setSessionToDelete(null);
   };
-
-
 
   const fetchSessionsData = useCallback(
     async (agentId?: string) => {
@@ -490,7 +491,7 @@ export function Chat() {
                 Select Agent
               </Title>
               <Select
-                  onSelect={onSelectAgent}
+                onSelect={onSelectAgent}
                 selected={selectedAgent}
                 onOpenChange={(isOpen: boolean) => setIsAgentSelectOpen(isOpen)}
                 isOpen={isAgentSelectOpen}
@@ -501,13 +502,14 @@ export function Chat() {
                     isExpanded={isAgentSelectOpen}
                     style={{ width: '100%' }}
                   >
-                    {availableAgents.find((agent) => agent.id === selectedAgent)?.name || 'Select Agent'}
+                    {availableAgents.find((agent) => agent.id === selectedAgent)?.name ||
+                      'Select Agent'}
                   </MenuToggle>
                 )}
               >
-                    {availableAgents.map((agent) => (
+                {availableAgents.map((agent) => (
                   <SelectOption key={agent.id} value={agent.id}>
-                        {agent.name}
+                    {agent.name}
                   </SelectOption>
                 ))}
               </Select>
@@ -538,18 +540,30 @@ export function Chat() {
 
               <div style={{ marginTop: '1rem' }}>
                 {chatSessions.length === 0 && selectedAgent && (
-                  <div style={{ textAlign: 'center', color: 'var(--pf-v5-global--Color--200)', padding: '1rem' }}>
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      color: 'var(--pf-v5-global--Color--200)',
+                      padding: '1rem',
+                    }}
+                  >
                     No sessions yet. Create your first session!
                   </div>
                 )}
 
                 {chatSessions.length === 0 && !selectedAgent && (
-                  <div style={{ textAlign: 'center', color: 'var(--pf-v5-global--Color--200)', padding: '1rem' }}>
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      color: 'var(--pf-v5-global--Color--200)',
+                      padding: '1rem',
+                    }}
+                  >
                     Select an agent to view sessions
                   </div>
                 )}
 
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {chatSessions.map((session) => (
                     <Card
                       key={session.id}
@@ -558,50 +572,55 @@ export function Chat() {
                       onClick={() => onSelectSession(session.id)}
                       style={{
                         width: '100%',
-                        border: session.id === sessionId
-                          ? '2px solid var(--pf-v5-global--primary-color--100)'
-                          : '1px solid var(--pf-v5-global--BorderColor--100)',
-                        backgroundColor: session.id === sessionId
-                          ? 'var(--pf-v5-global--primary-color--200)'
-                          : 'var(--pf-v5-global--BackgroundColor--100)',
-                        boxShadow: session.id === sessionId
-                          ? '0 2px 4px rgba(0, 0, 0, 0.1)'
-                          : 'none'
+                        border:
+                          session.id === sessionId
+                            ? '2px solid var(--pf-v5-global--primary-color--100)'
+                            : '1px solid var(--pf-v5-global--BorderColor--100)',
+                        backgroundColor:
+                          session.id === sessionId
+                            ? 'var(--pf-v5-global--primary-color--200)'
+                            : 'var(--pf-v5-global--BackgroundColor--100)',
+                        boxShadow:
+                          session.id === sessionId ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none',
                       }}
                     >
                       <CardBody style={{ padding: '0.75rem' }}>
                         <Split hasGutter style={{ minWidth: 0 }}>
                           <SplitItem isFilled style={{ minWidth: 0, overflow: 'hidden' }}>
                             <div style={{ minWidth: 0 }}>
-                              <div style={{
-                                fontWeight: session.id === sessionId ? 600 : 500,
-                                fontSize: '0.875rem',
-                                marginBottom: '0.25rem',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                minWidth: 0,
-                                color: session.id === sessionId
-                                  ? 'var(--pf-v5-global--primary-color--100)'
-                                  : 'var(--pf-v5-global--Color--100)',
-                                lineHeight: '1.3'
-                              }}
-                              title={session.title}
+                              <div
+                                style={{
+                                  fontWeight: session.id === sessionId ? 600 : 500,
+                                  fontSize: '0.875rem',
+                                  marginBottom: '0.25rem',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  minWidth: 0,
+                                  color:
+                                    session.id === sessionId
+                                      ? 'var(--pf-v5-global--primary-color--100)'
+                                      : 'var(--pf-v5-global--Color--100)',
+                                  lineHeight: '1.3',
+                                }}
+                                title={session.title}
                               >
                                 {session.title}
                               </div>
-                              <div style={{
-                                fontSize: '0.75rem',
-                                color: session.id === sessionId
-                                  ? 'var(--pf-v5-global--primary-color--200)'
-                                  : 'var(--pf-v5-global--Color--200)',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                minWidth: 0,
-                                lineHeight: '1.2'
-                              }}
-                              title={new Date(session.updated_at).toLocaleDateString()}
+                              <div
+                                style={{
+                                  fontSize: '0.75rem',
+                                  color:
+                                    session.id === sessionId
+                                      ? 'var(--pf-v5-global--primary-color--200)'
+                                      : 'var(--pf-v5-global--Color--200)',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  minWidth: 0,
+                                  lineHeight: '1.2',
+                                }}
+                                title={new Date(session.updated_at).toLocaleDateString()}
                               >
                                 {new Date(session.updated_at).toLocaleDateString()}
                               </div>
@@ -618,9 +637,10 @@ export function Chat() {
                               icon={<TrashIcon />}
                               aria-label="Delete session"
                               style={{
-                                color: session.id === sessionId
-                                  ? 'var(--pf-v5-global--primary-color--100)'
-                                  : 'var(--pf-v5-global--danger-color--100)'
+                                color:
+                                  session.id === sessionId
+                                    ? 'var(--pf-v5-global--primary-color--100)'
+                                    : 'var(--pf-v5-global--danger-color--100)',
                               }}
                             />
                           </SplitItem>
@@ -637,7 +657,7 @@ export function Chat() {
     </PageSidebar>
   );
 
-    return (
+  return (
     <>
       <style>{`
         #chat-page-container {
@@ -651,11 +671,7 @@ export function Chat() {
           margin: 0 !important;
         }
       `}</style>
-      <Page
-        sidebar={sidebar}
-        mainContainerId={'chat-page-container'}
-        masthead={masthead}
-      >
+      <Page sidebar={sidebar} mainContainerId={'chat-page-container'} masthead={masthead}>
         <PageSection
           hasBodyWrapper={false}
           style={{
@@ -665,18 +681,20 @@ export function Chat() {
             overflow: 'hidden',
             minHeight: 0,
             padding: 0,
-            margin: 0
+            margin: 0,
           }}
         >
-        <Chatbot displayMode={displayMode}>
-            <ChatbotContent style={{
-              flex: 1,
-              minHeight: 0,
-              overflow: 'hidden'
-            }}>
+          <Chatbot displayMode={displayMode}>
+            <ChatbotContent
+              style={{
+                flex: 1,
+                minHeight: 0,
+                overflow: 'hidden',
+              }}
+            >
               <MessageBox announcement={announcement}>
                 {messages.map((message) => (
-                        <Message key={message.id} {...message} />
+                  <Message key={message.id} {...message} />
                 ))}
                 {/* Scroll anchor - always at the bottom */}
                 <div
@@ -684,33 +702,37 @@ export function Chat() {
                   style={{
                     height: '1px',
                     marginTop: '0.5rem',
-                    visibility: 'hidden'
+                    visibility: 'hidden',
                   }}
                   aria-hidden="true"
                 />
               </MessageBox>
             </ChatbotContent>
-                        <ChatbotFooter style={{
-              flexShrink: 1,
-              minHeight: 0,
-              overflow: 'hidden'
-            }}>
+            <ChatbotFooter
+              style={{
+                flexShrink: 1,
+                minHeight: 0,
+                overflow: 'hidden',
+              }}
+            >
               <Panel variant="secondary">
                 <PanelMain>
-                  <PanelMainBody style={{
-                    padding: '0.25rem 0.5rem',
-                    minHeight: 0
-                  }}>
+                  <PanelMainBody
+                    style={{
+                      padding: '0.25rem 0.5rem',
+                      minHeight: 0,
+                    }}
+                  >
                     {attachedFiles.length > 0 && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
                           paddingBottom: '0.25rem',
-                          gap: '0.25rem'
-                      }}
-                    >
-                      {attachedFiles.map((file, index) => (
+                          gap: '0.25rem',
+                        }}
+                      >
+                        {attachedFiles.map((file, index) => (
                           <FileDetailsLabel
                             key={file.name}
                             fileName={file.name}
@@ -718,8 +740,8 @@ export function Chat() {
                               setAttachedFiles(attachedFiles.filter((_, i) => i !== index));
                             }}
                           />
-                      ))}
-                    </div>
+                        ))}
+                      </div>
                     )}
                     <MessageBar
                       onSendMessage={handleSendMessage as (message: string | number) => void}
@@ -732,41 +754,44 @@ export function Chat() {
                   </PanelMainBody>
                 </PanelMain>
               </Panel>
-              <div style={{
-                padding: '0.125rem 0.25rem',
-                textAlign: 'center',
-                overflow: 'hidden',
-                fontSize: '0.75rem',
-                lineHeight: '1.2'
-              }}>
-              <ChatbotFootnote {...footnoteProps} />
+              <div
+                style={{
+                  padding: '0.125rem 0.25rem',
+                  textAlign: 'center',
+                  overflow: 'hidden',
+                  fontSize: '0.75rem',
+                  lineHeight: '1.2',
+                }}
+              >
+                <ChatbotFootnote {...footnoteProps} />
               </div>
             </ChatbotFooter>
-        </Chatbot>
-      </PageSection>
-      <Modal
-        variant={ModalVariant.small}
-        title="Confirm Delete"
-        isOpen={isDeleteModalOpen}
-        onClose={cancelDeleteSession}
-      >
-        <ModalHeader title="Delete Session" labelId="delete-session-modal-title" />
-        <ModalBody id="delete-session-modal-desc">
-          Are you sure you want to delete this session?
-        </ModalBody>
-        <ModalFooter>
-          <Button variant="link" onClick={cancelDeleteSession}>
-            Cancel
-          </Button>
-          <Button
-            variant="danger"
-            isLoading={deleteSessionMutation.isPending}
-            onClick={confirmDeleteSession}
-          >
-            Delete
-          </Button>
-        </ModalFooter>
-      </Modal>
-    </Page>
-  </>);
+          </Chatbot>
+        </PageSection>
+        <Modal
+          variant={ModalVariant.small}
+          title="Confirm Delete"
+          isOpen={isDeleteModalOpen}
+          onClose={cancelDeleteSession}
+        >
+          <ModalHeader title="Delete Session" labelId="delete-session-modal-title" />
+          <ModalBody id="delete-session-modal-desc">
+            Are you sure you want to delete this session?
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="link" onClick={cancelDeleteSession}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              isLoading={deleteSessionMutation.isPending}
+              onClick={confirmDeleteSession}
+            >
+              Delete
+            </Button>
+          </ModalFooter>
+        </Modal>
+      </Page>
+    </>
+  );
 }

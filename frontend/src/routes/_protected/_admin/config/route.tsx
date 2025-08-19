@@ -1,20 +1,8 @@
-import {
-  Page,
-  PageSidebar,
-  PageSidebarBody,
-  Card,
-  CardBody,
-  Title
-} from '@patternfly/react-core';
+import { Page, PageSidebar, PageSidebarBody, Card, CardBody, Title } from '@patternfly/react-core';
 import { createFileRoute, Link, Outlet, useLocation } from '@tanstack/react-router';
 import React from 'react';
 import { Masthead } from '../../../../components/masthead';
-import {
-  UsersIcon,
-  CogIcon,
-  DatabaseIcon,
-  ServerIcon
-} from '@patternfly/react-icons';
+import { UsersIcon, CogIcon, DatabaseIcon, ServerIcon } from '@patternfly/react-icons';
 
 export const Route = createFileRoute('/_protected/_admin/config')({
   component: ConfigLayout,
@@ -41,26 +29,26 @@ function ConfigLayout() {
       path: '/config/agents',
       label: 'Agents',
       icon: CogIcon,
-      description: 'Manage AI agents and their configurations'
+      description: 'Manage AI agents and their configurations',
     },
     {
       path: '/config/knowledge-bases',
       label: 'Knowledge Bases',
       icon: DatabaseIcon,
-      description: 'Configure knowledge bases and data sources'
+      description: 'Configure knowledge bases and data sources',
     },
     {
       path: '/config/mcp-servers',
       label: 'MCP Servers',
       icon: ServerIcon,
-      description: 'Manage MCP server connections'
+      description: 'Manage MCP server connections',
     },
     {
       path: '/config/users',
       label: 'Users',
       icon: UsersIcon,
-      description: 'User management and permissions'
-    }
+      description: 'User management and permissions',
+    },
   ];
 
   const sidebar = (
@@ -91,9 +79,7 @@ function ConfigLayout() {
                         backgroundColor: isActive
                           ? 'var(--pf-v5-global--primary-color--200)'
                           : 'var(--pf-v5-global--BackgroundColor--100)',
-                        boxShadow: isActive
-                          ? '0 2px 4px rgba(0, 0, 0, 0.1)'
-                          : 'none'
+                        boxShadow: isActive ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none',
                       }}
                     >
                       <CardBody style={{ padding: '0.75rem' }}>
@@ -103,7 +89,7 @@ function ConfigLayout() {
                           style={{
                             textDecoration: 'none',
                             color: 'inherit',
-                            display: 'block'
+                            display: 'block',
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -112,31 +98,35 @@ function ConfigLayout() {
                                 fontSize: '1.25rem',
                                 color: isActive
                                   ? 'var(--pf-v5-global--primary-color--100)'
-                                  : 'var(--pf-v5-global--Color--100)'
+                                  : 'var(--pf-v5-global--Color--100)',
                               }}
                             />
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{
-                                fontWeight: isActive ? 600 : 500,
-                                fontSize: '0.875rem',
-                                marginBottom: '0.25rem',
-                                color: isActive
-                                  ? 'var(--pf-v5-global--primary-color--100)'
-                                  : 'var(--pf-v5-global--Color--100)',
-                                lineHeight: '1.3'
-                              }}>
+                              <div
+                                style={{
+                                  fontWeight: isActive ? 600 : 500,
+                                  fontSize: '0.875rem',
+                                  marginBottom: '0.25rem',
+                                  color: isActive
+                                    ? 'var(--pf-v5-global--primary-color--100)'
+                                    : 'var(--pf-v5-global--Color--100)',
+                                  lineHeight: '1.3',
+                                }}
+                              >
                                 {item.label}
                               </div>
-                              <div style={{
-                                fontSize: '0.75rem',
-                                color: isActive
-                                  ? 'var(--pf-v5-global--primary-color--200)'
-                                  : 'var(--pf-v5-global--Color--200)',
-                                lineHeight: '1.2',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap'
-                              }}>
+                              <div
+                                style={{
+                                  fontSize: '0.75rem',
+                                  color: isActive
+                                    ? 'var(--pf-v5-global--primary-color--200)'
+                                    : 'var(--pf-v5-global--Color--200)',
+                                  lineHeight: '1.2',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
                                 {item.description}
                               </div>
                             </div>
