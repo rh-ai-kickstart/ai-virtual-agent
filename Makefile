@@ -3,11 +3,6 @@
 
 .PHONY: all local helm help
 
-<<<<<<< HEAD
-all: ## Show usage instructions
-	@echo "AI Virtual Agent Kickstart"
-	@echo "========================="
-=======
 # -----------------------------------------------------------------------------
 # Global environment loading
 # -----------------------------------------------------------------------------
@@ -29,7 +24,6 @@ endif
 help: ## Show comprehensive help for all available targets
 	@echo "AI Virtual Agent Kickstart - Available Make Targets"
 	@echo "==================================================="
->>>>>>> 146fd5c (style: apply pre-commit fixes; tests/docs/attachments improvements)
 	@echo ""
 	@echo "Usage:"
 	@echo "  make local/<target>   - Run local development targets"
